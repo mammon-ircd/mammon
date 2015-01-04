@@ -80,14 +80,14 @@ def m_QUIT(cli, ev_msg):
 @eventmgr.message('NICK', min_params=1)
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
-    if new_nickname in cli.clients:
-        cli.dump_numeric('433', [cli.nickname, new_nickname, 'Nickname already in use'])
+    if new_nickname in cli.ctx.clients:
+        cli.dump_numeric('433', [new_nickname, 'Nickname already in use'])
         return
     msg = RFC1459Message.from_data('NICK', source=cli.hostmask, params=[new_nickname])
     if cli.registered:
-        if cli.nickname in cli.clients:
-            cli.clients.pop(cli.nickname)
-        cli.clients[new_nickname] = cli
+        if cli.nickname in cli.ctx.clients:
+            cli.ctx.clients.pop(cli.nickname)
+        cli.ctx.clients[new_nickname] = cli
         cli.sendto_common_peers(msg)
     cli.nickname = new_nickname
     cli.release_registration_lock(REGISTRATION_LOCK_NICK)
@@ -99,3 +99,10 @@ def m_USER(cli, ev_msg):
     cli.username = new_username
     cli.realname = new_realname
     cli.release_registration_lock(REGISTRATION_LOCK_USER)
+
+@eventmgr.message('PING')
+def m_PING(cli, ev_msg):
+    reply = ev_msg['params'][0] if ev_msg['params'] else cli.ctx.conf.name
+    msg = RFC1459Message.from_data('PONG', source=cli.ctx.conf.name, params=[reply])
+    cli.dump_message(msg)
+

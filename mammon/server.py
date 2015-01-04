@@ -28,6 +28,7 @@ from .config import ConfigHandler
 import logging
 import asyncio
 import sys
+import time
 
 class ServerContext(object):
     options = []
@@ -45,6 +46,8 @@ class ServerContext(object):
         self.handle_config()
 
         logging.debug('init finished...')
+
+        self.startstamp = time.strftime('%a %b %d %Y at %H:%M:%S %Z')
 
     def usage(self):
         cmd = sys.argv[0]

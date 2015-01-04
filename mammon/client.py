@@ -21,6 +21,7 @@ import time
 
 from ircreactor.envelope import RFC1459Message
 from .server import eventmgr, get_context
+from . import __version__
 
 REGISTRATION_LOCK_NICK = 0x1
 REGISTRATION_LOCK_USER = 0x2
@@ -30,7 +31,6 @@ REGISTRATION_LOCK_USER = 0x2
 class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.ctx = get_context()
-        self.ctx.clients.append(self)
 
         self.peername = transport.get_extra_info('peername')
         self.transport = transport
@@ -38,14 +38,19 @@ class ClientProtocol(asyncio.Protocol):
         self.channels = list()
         self.nickname = '*'
         self.username = str()
-        self.hostname = self.peername  # XXX - handle rdns...
+        self.hostname = self.peername[0]  # XXX - handle rdns...
+        self.realname = '<unregistered>'
 
         self.registered = False
+        self.registration_lock = 0
         self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER)
 
         logging.debug('new inbound connection from {}'.format(self.peername))
 
     def data_received(self, data):
+        [self.message_received(m) for m in data.splitlines()]
+
+    def message_received(self, data):
         m = RFC1459Message.from_message(data.decode('UTF-8', 'replace').strip('\r\n'))
         m.client = self
 
@@ -68,7 +73,7 @@ class ClientProtocol(asyncio.Protocol):
         self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
-        msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=params)
+        msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=[self.nickname] + params)
         self.dump_message(msg)
 
     def dump_notice(self, message):
@@ -111,3 +116,22 @@ class ClientProtocol(asyncio.Protocol):
 
     def sendto_common_peers(self, message):
         [i.dump_message(message) for i in self.channels]
+
+    def dump_isupport(self):
+        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True}
+        # XXX - split into multiple 005 lines if > 13 tokens
+        def format_token(k, v):
+            if isinstance(v, bool):
+                return k
+            return '{0}={1}'.format(k, v)
+
+        self.dump_numeric('005', [format_token(k, v) for k, v in isupport_tokens.items()] + ['are supported by this server'])
+
+    def register(self):
+        self.registered = True
+
+        self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
+        self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
+        self.dump_numeric('003', ['This server was started at ' + self.ctx.startstamp])
+        # XXX - numeric 004
+        self.dump_isupport()
