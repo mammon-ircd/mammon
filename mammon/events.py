@@ -16,11 +16,15 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import logging
+from functools import wraps
 
 from ircreactor.events import EventManager as EventManagerBase
 from ircreactor.envelope import RFC1459Message
 
 class EventManager(EventManagerBase):
+    def __init__(self):
+        super(EventManager, self).__init__()
+
     def dispatch(self, event, ev_msg):
         """Dispatch an event.
                event: name of the event (str)
@@ -39,3 +43,45 @@ class EventManager(EventManagerBase):
         cli = ev_msg['client']
         msg = RFC1459Message.from_data('421', source=cli.ctx.conf.name, params=[cli.nickname, ev_msg['verb'], 'Unknown command'])
         cli.dump_message(msg)
+
+    def connect(self, event):
+        def wrapped_fn(func):
+            self.register(event, func)
+            return func
+        return wrapped_fn
+
+    def message(self, verb, min_params=0):
+        def parent_fn(func):
+            @wraps(func)
+            def child_fn(ev_msg):
+                cli = ev_msg['client']
+                if len(ev_msg['params']) < min_params:
+                    msg = RFC1459Message.from_data('461', source=cli.ctx.conf.name, params=[cli.nickname, ev_msg['verb'], 'Not enough parameters'])
+                    cli.dump_message(msg)
+                    return
+                return func(cli, ev_msg)
+            self.register('rfc1459 message ' + verb, child_fn)
+            return child_fn
+        return parent_fn
+
+eventmgr = EventManager()
+
+# - - - BUILTIN EVENTS - - -
+
+@eventmgr.message('QUIT')
+def m_QUIT(cli, ev_msg):
+    reason = ev_msg['params'][0] if ev_msg['params'] else str()
+    cli.exit_client('Quit: ' + reason)
+
+@eventmgr.message('NICK', min_params=1)
+def m_NICK(cli, ev_msg):
+    new_nickname = ev_msg['params'][0]
+    if new_nickname in cli.clients:
+        cli.dump_numeric('433', [cli.nickname, new_nickname, 'Nickname already in use'])
+        return
+    if cli.nickname in cli.clients:
+        cli.clients.pop(cli.nickname)
+    msg = RFC1459Message.from_data('NICK', source=cli.hostmask, params=[new_nickname])
+    cli.sendto_common_peers(msg)
+    cli.clients[new_nickname] = cli
+    cli.nickname = new_nickname

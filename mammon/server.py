@@ -15,9 +15,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from .events import EventManager
+from .events import EventManager, eventmgr
 
-eventmgr = EventManager()
 running_context = None
 
 def get_context():
@@ -25,7 +24,6 @@ def get_context():
     return running_context
 
 from .config import ConfigHandler
-#from .client import ClientProtocol
 
 import logging
 import asyncio
@@ -33,7 +31,7 @@ import sys
 
 class ServerContext(object):
     options = []
-    clients = []
+    clients = {}
     listeners = []
     config_name = 'mammond.conf'
 

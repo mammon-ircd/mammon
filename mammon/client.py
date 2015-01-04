@@ -62,6 +62,10 @@ class ClientProtocol(asyncio.Protocol):
     def dump_message(self, m):
         self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
 
+    def dump_numeric(self, numeric, params):
+        msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=params)
+        self.dump_message(msg)
+
     @property
     def hostmask(self):
         hm = self.nickname
@@ -76,7 +80,10 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_message(m)
         while self.channels:
             i = self.channels.pop(0)
-            i.clients.remove(self)
+            i.clients.pop(self)
             i.dump_message(m)
         self.transport.close()
-        self.ctx.clients.remove(self)
+        self.ctx.clients.pop(self.nickname)
+
+    def sendto_common_peers(self, message):
+        [i.dump_message(message) for i in self.channels]
