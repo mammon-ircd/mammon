@@ -120,3 +120,32 @@ def m_VERSION(cli, ev_msg):
     cli.dump_numeric('351', ['mammon-' + str(__version__), cli.ctx.conf.name])
     cli.dump_isupport()
 
+@eventmgr.message('PRIVMSG', min_params=2)
+def m_PRIVMSG(cli, ev_msg):
+    target = ev_msg['params'][0]
+    message = ev_msg['params'][1]
+
+    if target[0] != '#':
+        cli_tg = cli.ctx.clients.get(target, None)
+        if not cli_tg:
+            cli.dump_numeric('401', [target, 'No such nick/channel'])
+            return
+        msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[cli_tg.nickname, message])
+        cli_tg.dump_message(msg)
+        return
+
+    # XXX - channels not implemented yet
+    cli.dump_numeric('401', [target, 'No such nick/channel'])
+
+@eventmgr.message('NOTICE', min_params=2)
+def m_NOTICE(cli, ev_msg):
+    target = ev_msg['params'][0]
+    message = ev_msg['params'][1]
+
+    if target[0] != '#':
+        cli_tg = cli.ctx.clients.get(target, None)
+        if not cli_tg:
+            return
+        msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[cli_tg.nickname, message])
+        cli_tg.dump_message(msg)
+        return
