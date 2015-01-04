@@ -66,6 +66,10 @@ class ClientProtocol(asyncio.Protocol):
         msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=params)
         self.dump_message(msg)
 
+    def dump_notice(self, message):
+        msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=['*** ' + message])
+        self.dump_message(msg)
+
     @property
     def hostmask(self):
         hm = self.nickname
