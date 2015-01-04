@@ -18,6 +18,7 @@
 import asyncio
 import logging
 import time
+import socket
 
 from ircreactor.envelope import RFC1459Message
 from .server import eventmgr, get_context
@@ -25,6 +26,7 @@ from . import __version__
 
 REGISTRATION_LOCK_NICK = 0x1
 REGISTRATION_LOCK_USER = 0x2
+REGISTRATION_LOCK_DNS  = 0x4
 
 # XXX - handle ping timeout
 # XXX - exit_client() could eventually be handled using eventmgr.dispatch()
@@ -39,13 +41,38 @@ class ClientProtocol(asyncio.Protocol):
         self.nickname = '*'
         self.username = str()
         self.hostname = self.peername[0]  # XXX - handle rdns...
+        self.realaddr = self.peername[0]
         self.realname = '<unregistered>'
 
         self.registered = False
         self.registration_lock = 0
-        self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER)
+        self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER | REGISTRATION_LOCK_DNS)
 
         logging.debug('new inbound connection from {}'.format(self.peername))
+
+        asyncio.async(self.do_rdns_check())
+
+    def do_rdns_check(self):
+        self.dump_notice('Looking up your hostname...')
+
+        rdns = yield from self.ctx.eventloop.getnameinfo(self.peername)
+        logging.debug(repr(rdns))
+
+        if rdns[0] == self.realaddr:
+            self.dump_notice('Could not find your hostname...')
+            self.release_registration_lock(REGISTRATION_LOCK_DNS)
+            return
+
+        fdns = yield from self.ctx.eventloop.getaddrinfo(rdns[0], rdns[1], proto=socket.IPPROTO_TCP)
+        for fdns_e in fdns:
+            if fdns_e[4][0] == self.realaddr:
+                self.dump_notice('Found your hostname: ' + rdns[0])
+                self.hostname = rdns[0]
+                self.release_registration_lock(REGISTRATION_LOCK_DNS)
+                return
+
+        self.dump_notice('Could not find your hostname...')
+        self.release_registration_lock(REGISTRATION_LOCK_DNS)
 
     def data_received(self, data):
         [self.message_received(m) for m in data.splitlines()]
@@ -77,7 +104,7 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_message(msg)
 
     def dump_notice(self, message):
-        msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=['*** ' + message])
+        msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=[self.nickname, '*** ' + message])
         self.dump_message(msg)
 
     @property
