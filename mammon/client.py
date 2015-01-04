@@ -34,7 +34,7 @@ class ClientProtocol(asyncio.Protocol):
         self.transport = transport
         self.recvq = list()
         self.channels = list()
-        self.nickname = '<unknown>'
+        self.nickname = '*'
         self.username = str()
         self.hostname = self.peername  # XXX - handle rdns...
 
