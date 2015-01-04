@@ -37,6 +37,8 @@ class ClientProtocol(asyncio.Protocol):
         self.nickname = '*'
         self.username = str()
         self.hostname = self.peername  # XXX - handle rdns...
+        self.registered = False
+        self.registration_lock = 2     # NICK/USER steps
 
         logging.debug('new inbound connection from {}'.format(self.peername))
 
@@ -72,6 +74,8 @@ class ClientProtocol(asyncio.Protocol):
 
     @property
     def hostmask(self):
+        if not self.registered:
+            return None
         hm = self.nickname
         if self.username:
             hm += '!' + self.username
@@ -87,7 +91,15 @@ class ClientProtocol(asyncio.Protocol):
             i.clients.pop(self)
             i.dump_message(m)
         self.transport.close()
-        self.ctx.clients.pop(self.nickname)
+        if self.registered:
+            self.ctx.clients.pop(self.nickname)
+
+    def release_registration_lock(self):
+        if self.registered:
+            return
+        self.registration_lock--
+        if not self.registration_lock:
+            self.register()
 
     def sendto_common_peers(self, message):
         [i.dump_message(message) for i in self.channels]
