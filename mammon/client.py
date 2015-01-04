@@ -156,6 +156,7 @@ class ClientProtocol(asyncio.Protocol):
 
     def register(self):
         self.registered = True
+        self.ctx.clients[self.nickname] = self
 
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
