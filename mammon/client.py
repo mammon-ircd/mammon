@@ -56,7 +56,6 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_notice('Looking up your hostname...')
 
         rdns = yield from self.ctx.eventloop.getnameinfo(self.peername)
-        logging.debug(repr(rdns))
 
         if rdns[0] == self.realaddr:
             self.dump_notice('Could not find your hostname...')
