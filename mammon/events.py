@@ -25,6 +25,8 @@ from functools import wraps
 from ircreactor.events import EventManager as EventManagerBase
 from ircreactor.envelope import RFC1459Message
 
+from . import __credits__, __version__
+
 class EventManager(EventManagerBase):
     def __init__(self):
         super(EventManager, self).__init__()
@@ -105,4 +107,16 @@ def m_PING(cli, ev_msg):
     reply = ev_msg['params'][0] if ev_msg['params'] else cli.ctx.conf.name
     msg = RFC1459Message.from_data('PONG', source=cli.ctx.conf.name, params=[reply])
     cli.dump_message(msg)
+
+@eventmgr.message('INFO')
+def m_INFO(cli, ev_msg):
+    lines = __credits__.splitlines()
+    for line in lines:
+        cli.dump_numeric('371', [line])
+    cli.dump_numeric('374', ['End of /INFO list.'])
+
+@eventmgr.message('VERSION')
+def m_VERSION(cli, ev_msg):
+    cli.dump_numeric('351', ['mammon-' + str(__version__), cli.ctx.conf.name])
+    cli.dump_isupport()
 
