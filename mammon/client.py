@@ -19,9 +19,11 @@ import asyncio
 import logging
 import time
 
-from ircreactor.events import EventManager
 from ircreactor.envelope import RFC1459Message
 from .server import eventmgr, get_context
+
+REGISTRATION_LOCK_NICK = 0x1
+REGISTRATION_LOCK_USER = 0x2
 
 # XXX - handle ping timeout
 # XXX - exit_client() could eventually be handled using eventmgr.dispatch()
@@ -37,8 +39,9 @@ class ClientProtocol(asyncio.Protocol):
         self.nickname = '*'
         self.username = str()
         self.hostname = self.peername  # XXX - handle rdns...
+
         self.registered = False
-        self.registration_lock = 2     # NICK/USER steps
+        self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER)
 
         logging.debug('new inbound connection from {}'.format(self.peername))
 
@@ -94,10 +97,15 @@ class ClientProtocol(asyncio.Protocol):
         if self.registered:
             self.ctx.clients.pop(self.nickname)
 
-    def release_registration_lock(self):
+    def push_registration_lock(self, lock):
         if self.registered:
             return
-        self.registration_lock--
+        self.registration_lock |= lock
+
+    def release_registration_lock(self, lock):
+        if self.registered:
+            return
+        self.registration_lock &= ~lock
         if not self.registration_lock:
             self.register()
 

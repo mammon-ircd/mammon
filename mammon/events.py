@@ -15,6 +15,10 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# XXX
+REGISTRATION_LOCK_NICK = 0x1
+REGISTRATION_LOCK_USER = 0x2
+
 import logging
 from functools import wraps
 
@@ -79,9 +83,19 @@ def m_NICK(cli, ev_msg):
     if new_nickname in cli.clients:
         cli.dump_numeric('433', [cli.nickname, new_nickname, 'Nickname already in use'])
         return
-    if cli.nickname in cli.clients:
-        cli.clients.pop(cli.nickname)
     msg = RFC1459Message.from_data('NICK', source=cli.hostmask, params=[new_nickname])
-    cli.sendto_common_peers(msg)
-    cli.clients[new_nickname] = cli
+    if cli.registered:
+        if cli.nickname in cli.clients:
+            cli.clients.pop(cli.nickname)
+        cli.clients[new_nickname] = cli
+        cli.sendto_common_peers(msg)
     cli.nickname = new_nickname
+    cli.release_registration_lock(REGISTRATION_LOCK_NICK)
+
+@eventmgr.message('USER', min_params=4)
+def m_USER(cli, ev_msg):
+    new_username = ev_msg['params'][0]
+    new_realname = ev_msg['params'][3]
+    cli.username = new_username
+    cli.realname = new_realname
+    cli.release_registration_lock(REGISTRATION_LOCK_USER)
