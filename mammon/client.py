@@ -80,7 +80,7 @@ class ClientProtocol(asyncio.Protocol):
         m = RFC1459Message.from_message(data.decode('UTF-8', 'replace').strip('\r\n'))
         m.client = self
 
-        logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
+        # logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
         if len(self.recvq) > self.ctx.conf.recvq_len:
             self.exit_client('Excess flood')
             return
