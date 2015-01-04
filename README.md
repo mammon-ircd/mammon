@@ -27,6 +27,17 @@ Once ready for use, we will provide a setup.py which will install it.  Then you 
 
 `mammond --config /path/to/mammond.conf`
 
+## dependencies
+
+Normally one might deploy mammon using `pip install mammon`, which will install all the dependencies
+(of course, this only applies once we ship something).
+
+In the meantime the dependencies are:
+
+ * Python 3.4 (or Python 3.3+ with Tulip, or PyPy SVN with Tulip),
+ * `ircmatch` library,
+ * `ircreactor` library
+
 ## contact
 
 Coming soon to `irc.dereferenced.org #mammon`.
