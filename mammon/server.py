@@ -20,6 +20,10 @@ from ircreactor.events import EventManager
 eventmgr = EventManager()
 running_context = None
 
+def get_context():
+    global running_context
+    return running_context
+
 from .config import ConfigHandler
 #from .client import ClientProtocol
 
@@ -29,6 +33,8 @@ import sys
 
 class ServerContext(object):
     options = []
+    clients = []
+    listeners = []
     config_name = 'mammond.conf'
 
     def __init__(self):
@@ -66,11 +72,17 @@ Options:
             logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
     def handle_config(self):
-        self.conf = ConfigHandler(self.config_name, self).process()
+        self.conf = ConfigHandler(self.config_name, self)
+        self.conf.process()
+        self.open_listeners()
+
+    def open_listeners(self):
+        [self.eventloop.create_task(lstn) for lstn in self.listeners]
 
     def run(self):
         global running_context
         running_context = self
 
+        logging.debug('running_context: {0}'.format(id(running_context)))
         self.eventloop.run_forever()
         exit(0)

@@ -21,11 +21,15 @@ except:
     import json
 
 import asyncio
-# from .client import ClientProtocol
+import logging
+from .client import ClientProtocol
 
 class ConfigHandler(object):
     config_st = {}
     ctx = None
+    listener_protos = {
+        'client': ClientProtocol,
+    }
 
     def __init__(self, config_name, ctx):
         self.config_name = config_name
@@ -37,3 +41,9 @@ class ConfigHandler(object):
         for k, v in self.config_st.items():
             setattr(self, k, v)
 
+        for l in self.listeners:
+            proto = l.get('proto', 'client')
+
+            logging.info('opening listener at {0}:{1} [{2}]'.format(l['host'], l['port'], proto))
+            lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'])
+            self.ctx.listeners.append(lstn)
