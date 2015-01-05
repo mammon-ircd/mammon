@@ -147,8 +147,8 @@ class ClientProtocol(asyncio.Protocol):
     def legacy_modes(self):
         out = '+'
         for i in self.props.keys():
-            if self.props[i] and k in user_property_items:
-                out += user_property_items[k]
+            if self.props[i] and i in user_property_items:
+                out += user_property_items[i]
         return out
 
     def set_legacy_modes(self, in_str):
@@ -161,25 +161,32 @@ class ClientProtocol(asyncio.Protocol):
             elif i == '-':
                 mod = False
             else:
+                if i == 'o' and mod == True:
+                    continue
                 prop = user_mode_items[i]
                 self.props[prop] = mod
 
         self.flush_legacy_mode_change(before, self.props)
 
     def flush_legacy_mode_change(self, before, after):
-        props_added = list(filter(lambda x: before[x] != after[x] and after[x] == True, after.keys()))
-        props_removed = list(filter(lambda x: before[x] != after[x] and after[x] == False, after.keys()))
-
         out = str()
-        if len(props_added) > 0:
-            out += '+'
-            for i in props_added:
-                out += user_mode_items[i]
+        mod = 0
 
-        if len(props_removed) > 0:
-            out += '-'
-            for i in props_removed:
-                out += user_mode_items[i]
+        for i in user_property_items.keys():
+            if before.get(i, False) and not after.get(i, False):
+                if mod == 1:
+                    out += user_property_items[i]
+                else:
+                    mod = 1
+                    out += '-'
+                    out += user_property_items[i]
+            elif not before.get(i, False) and after.get(i, False):
+                if mod == 2:
+                    out += user_property_items[i]
+                else:
+                    mod = 2
+                    out += '+'
+                    out += user_property_items[i]
 
         msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
         self.dump_message(msg)

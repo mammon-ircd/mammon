@@ -149,3 +149,17 @@ def m_NOTICE(cli, ev_msg):
         msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[cli_tg.nickname, message])
         cli_tg.dump_message(msg)
         return
+
+@eventmgr.message('MODE', min_params=1)
+def m_MODE(cli, ev_msg):
+    if ev_msg['params'][0] == cli.nickname:
+        if len(ev_msg['params']) == 1:
+            cli.dump_numeric('221', [cli.legacy_modes])
+            return
+        cli.set_legacy_modes(ev_msg['params'][1])
+        return
+    elif ev_msg['params'][0][0] != '#':
+        cli.dump_numeric('502', ["Can't change mode for other users"])
+        return
+
+    # XXX - channels not implemented
