@@ -19,8 +19,11 @@ import asyncio
 import logging
 import time
 import socket
+import copy
 
 from ircreactor.envelope import RFC1459Message
+from .utility import CaseInsensitiveDict
+from .property import user_property_items, user_mode_items
 from .server import eventmgr, get_context
 from . import __version__
 
@@ -43,6 +46,7 @@ class ClientProtocol(asyncio.Protocol):
         self.hostname = self.peername[0]  # XXX - handle rdns...
         self.realaddr = self.peername[0]
         self.realname = '<unregistered>'
+        self.props = CaseInsensitiveDict()
 
         self.registered = False
         self.registration_lock = 0
@@ -56,7 +60,6 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_notice('Looking up your hostname...')
 
         rdns = yield from self.ctx.eventloop.getnameinfo(self.peername)
-
         if rdns[0] == self.realaddr:
             self.dump_notice('Could not find your hostname...')
             self.release_registration_lock(REGISTRATION_LOCK_DNS)
@@ -139,6 +142,47 @@ class ClientProtocol(asyncio.Protocol):
         self.registration_lock &= ~lock
         if not self.registration_lock:
             self.register()
+
+    @property
+    def legacy_modes(self):
+        out = '+'
+        for i in self.props.keys():
+            if self.props[i] and k in user_property_items:
+                out += user_property_items[k]
+        return out
+
+    def set_legacy_modes(self, in_str):
+        before = copy.deepcopy(self.props)
+
+        mod = False
+        for i in in_str:
+            if i == '+':
+                mod = True
+            elif i == '-':
+                mod = False
+            else:
+                prop = user_mode_items[i]
+                self.props[prop] = mod
+
+        self.flush_legacy_mode_change(before, self.props)
+
+    def flush_legacy_mode_change(self, before, after):
+        props_added = list(filter(lambda x: before[x] != after[x] and after[x] == True, after.keys()))
+        props_removed = list(filter(lambda x: before[x] != after[x] and after[x] == False, after.keys()))
+
+        out = str()
+        if len(props_added) > 0:
+            out += '+'
+            for i in props_added:
+                out += user_mode_items[i]
+
+        if len(props_removed) > 0:
+            out += '-'
+            for i in props_removed:
+                out += user_mode_items[i]
+
+        msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
+        self.dump_message(msg)
 
     def sendto_common_peers(self, message):
         [i.dump_message(message) for i in self.channels]
