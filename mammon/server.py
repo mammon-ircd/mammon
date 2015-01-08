@@ -24,6 +24,7 @@ def get_context():
     return running_context
 
 from .config import ConfigHandler
+from .utility import CaseInsensitiveDict
 
 import logging
 import asyncio
@@ -32,7 +33,7 @@ import time
 
 class ServerContext(object):
     options = []
-    clients = {}
+    clients = CaseInsensitiveDict()
     listeners = []
     config_name = 'mammond.conf'
 
