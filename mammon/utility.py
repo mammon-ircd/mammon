@@ -1,4 +1,4 @@
-# mammon - third-party stuff, each thing has it's own header and provenance
+# mammon - utility/third-party stuff, each thing has it's own header and provenance
 # information.
 
 # CaseInsensitiveDict from requests.
@@ -87,3 +87,29 @@ class CaseInsensitiveDict(collections.MutableMapping):
     def __repr__(self):
         return str(dict(self.items()))
 
+# fast irc casemapping validation
+# part of mammon, under mammon license.
+import string
+
+special = '_-|^{}[]'
+
+nick_allowed_chars = string.ascii_letters + string.digits + special
+nick_allowed_chars_tbl = str.maketrans('', '', nick_allowed_chars)
+
+first_nick_allowed_chars = string.ascii_letters + special
+
+def validate_nick(nick):
+    if nick[0] not in first_nick_allowed_chars:
+        return False
+    remainder = nick[1:]
+    badchars = remainder.translate(nick_allowed_chars_tbl)
+    return badchars == ''
+
+chan_allowed_chars = string.printable
+chan_allowed_chars_tbl = str.maketrans('', '', chan_allowed_chars)
+
+def validate_chan(chan_name):
+    if chan_name[0] != '#':
+        return False
+    badchars = chan_name[1:].translate(chan_allowed_chars_tbl)
+    return badchars == ''
