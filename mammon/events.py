@@ -195,4 +195,6 @@ def m_ISON(cli, ev_msg):
             if subchunk in cli.ctx.clients:
                 matches.append(subchunk)
 
-    cli.dump_numeric('303', [' '.join(matches)])
+    # ircII derivatives needs a trailing space, ugh.
+    # unfortunately BitchX is ircv3.1 compliant so we actually have to care about this
+    cli.dump_numeric('303', [' '.join(matches) + ' '])
