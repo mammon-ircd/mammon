@@ -211,5 +211,5 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
         self.dump_numeric('003', ['This server was started at ' + self.ctx.startstamp])
-        # XXX - numeric 004
+        self.dump_numeric('004', [self.ctx.conf.name, 'mammon-' + str(__version__), ''.join(user_mode_items.keys())])
         self.dump_isupport()
