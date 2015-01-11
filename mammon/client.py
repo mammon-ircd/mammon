@@ -219,3 +219,7 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_numeric('003', ['This server was started at ' + self.ctx.startstamp])
         self.dump_numeric('004', [self.ctx.conf.name, 'mammon-' + str(__version__), ''.join(user_mode_items.keys())])
         self.dump_isupport()
+
+        # XXX - LUSERS isn't implemented.
+        # self.handle_rfc1459_side_effect('LUSERS')
+        self.handle_rfc1459_side_effect('MOTD')

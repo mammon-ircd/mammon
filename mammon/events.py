@@ -154,6 +154,16 @@ def m_NOTICE(cli, ev_msg):
         cli_tg.dump_message(msg)
         return
 
+@eventmgr.message('MOTD')
+def m_MOTD(cli, ev_msg):
+    if cli.ctx.conf.motd:
+        cli.dump_numeric('375', ['- ' + cli.ctx.conf.name + ' Message of the Day -'])
+        for i in cli.ctx.conf.motd:
+            cli.dump_numeric('372', ['- ' + i])
+        cli.dump_numeric('376', ['End of /MOTD command.'])
+    else:
+        cli.dump_numeric('422', ['MOTD File is missing'])
+
 @eventmgr.message('MODE', min_params=1)
 def m_MODE(cli, ev_msg):
     if ev_msg['params'][0] == cli.nickname:
