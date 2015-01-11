@@ -26,6 +26,7 @@ from ircreactor.events import EventManager as EventManagerBase
 from ircreactor.envelope import RFC1459Message
 
 from . import __credits__, __version__
+from .utility import validate_nick, validate_chan
 
 class EventManager(EventManagerBase):
     def __init__(self):
@@ -82,6 +83,9 @@ def m_QUIT(cli, ev_msg):
 @eventmgr.message('NICK', min_params=1)
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
+    if not validate_nick(new_nickname):
+        cli.dump_numeric('432', [new_nickname, 'Erroneous nickname'])
+        return
     if new_nickname in cli.ctx.clients:
         cli.dump_numeric('433', [new_nickname, 'Nickname already in use'])
         return
