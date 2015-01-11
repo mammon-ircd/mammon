@@ -183,3 +183,16 @@ def m_MODE(cli, ev_msg):
         return
 
     # XXX - channels not implemented
+
+@eventmgr.message('ISON', min_params=1)
+def m_ISON(cli, ev_msg):
+    matches = []
+
+    # charybdis implements it roughly this way.  rfc1459 is ambiguous, so we will
+    # use charybdis's implementation.
+    for chunk in ev_msg['params']:
+        for subchunk in chunk.split():
+            if subchunk in cli.ctx.clients:
+                matches.append(subchunk)
+
+    cli.dump_numeric('303', [' '.join(matches)])
