@@ -25,6 +25,7 @@ def get_context():
 
 from .config import ConfigHandler
 from .utility import CaseInsensitiveDict
+from .channel import ChannelManager
 
 import logging
 import asyncio
@@ -34,10 +35,13 @@ import time
 class ServerContext(object):
     options = []
     clients = CaseInsensitiveDict()
+    channels = CaseInsensitiveDict()
     listeners = []
     config_name = 'mammond.conf'
 
     def __init__(self):
+        self.chmgr = ChannelManager(self)
+
         self.handle_command_line()
 
         logging.info('mammon - starting up, config: {0}'.format(self.config_name))
