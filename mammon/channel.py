@@ -89,6 +89,9 @@ def m_JOIN(cli, ev_msg):
     ch.join(cli)
     ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
 
+    cli.handle_side_effect('TOPIC', params=[ch.name])
+    cli.handle_side_effect('NAMES', params=[ch.name])
+
 @eventmgr.message('PART', min_params=1)
 def m_PART(cli, ev_msg):
     if not validate_chan(ev_msg['params'][0]):
