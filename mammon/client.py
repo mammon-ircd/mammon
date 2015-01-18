@@ -16,7 +16,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import asyncio
-import logging
 import time
 import socket
 import copy
@@ -52,7 +51,7 @@ class ClientProtocol(asyncio.Protocol):
         self.registration_lock = 0
         self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER | REGISTRATION_LOCK_DNS)
 
-        logging.debug('new inbound connection from {}'.format(self.peername))
+        self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
 
         asyncio.async(self.do_rdns_check())
 

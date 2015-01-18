@@ -42,6 +42,9 @@ class ServerContext(object):
     nofork = False
 
     def __init__(self):
+        self.logger = logging.getLogger('')
+        self.logger.setLevel(logging.DEBUG)
+
         self.chmgr = ChannelManager(self)
 
         self.handle_command_line()
@@ -49,13 +52,13 @@ class ServerContext(object):
         if not self.nofork:
             self.daemonize()
 
-        logging.info('mammon - starting up, config: {0}'.format(self.config_name))
+        self.logger.info('mammon - starting up, config: {0}'.format(self.config_name))
         self.eventloop = asyncio.get_event_loop()
 
-        logging.debug('parsing configuration...')
+        self.logger.debug('parsing configuration...')
         self.handle_config()
 
-        logging.debug('init finished...')
+        self.logger.debug('init finished...')
 
         self.startstamp = time.strftime('%a %b %d %Y at %H:%M:%S %Z')
 
@@ -98,7 +101,7 @@ Options:
                 print('mammon: error: no parameter provided for --config')
                 exit(1)
         if '--debug' in sys.argv:
-            logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+            self.logger.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
         if '--nofork' in sys.argv:
             self.nofork = True
 
@@ -106,9 +109,17 @@ Options:
         self.conf = ConfigHandler(self.config_name, self)
         self.conf.process()
         self.open_listeners()
+        self.open_logs()
 
     def open_listeners(self):
         [self.eventloop.create_task(lstn) for lstn in self.listeners]
+
+    def open_logs(self):
+        if self.conf.logs:
+            for log in self.conf.logs:
+                fh = logging.FileHandler(log['path'])
+                fh.setLevel(logging.DEBUG)
+                self.logger.addHandler(fh)
 
     def run(self):
         global running_context

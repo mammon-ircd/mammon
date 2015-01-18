@@ -44,6 +44,6 @@ class ConfigHandler(object):
         for l in self.listeners:
             proto = l.get('proto', 'client')
 
-            logging.info('opening listener at {0}:{1} [{2}]'.format(l['host'], l['port'], proto))
+            self.ctx.logger.info('opening listener at {0}:{1} [{2}]'.format(l['host'], l['port'], proto))
             lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'])
             self.ctx.listeners.append(lstn)

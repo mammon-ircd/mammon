@@ -37,7 +37,6 @@ class EventManager(EventManagerBase):
                event: name of the event (str)
                ev_msg: non-optional arguments dictionary.
            Side effects: None"""
-        logging.debug('dispatching: ' + event + ': ' + repr(ev_msg))
         eo = self.events.get(event, None)
         if not eo:
             return self.handle_unknown(ev_msg)
