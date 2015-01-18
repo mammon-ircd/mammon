@@ -17,6 +17,7 @@
 
 from ircreactor.envelope import RFC1459Message
 from .utility import validate_chan, CaseInsensitiveDict
+from .property import member_property_items
 
 class ChannelManager(object):
     def __init__(self, ctx):
@@ -37,6 +38,15 @@ class ChannelMembership(object):
         self.client = client
         self.channel = channel
         self.props = CaseInsensitiveDict()
+
+    @property
+    def name(self):
+        pstr = str()
+        for prop, flag in member_property_items.items():
+            if prop in self.props:
+                pstr += flag
+        pstr += self.client.nickname
+        return pstr
 
 class Channel(object):
     def __init__(self, name):
@@ -72,6 +82,12 @@ class Channel(object):
         if not exclusion_list:
             exclusion_list = list()
         [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list]
+
+    @property
+    def classification(self):
+        if not 'secret' in self.props:
+            return '='
+        return '@'
 
 # --- rfc1459 channel management commands ---
 from .events import eventmgr
@@ -109,3 +125,22 @@ def m_PART(cli, ev_msg):
 
     ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=ev_msg['params']))
     ch.part(cli)
+
+@eventmgr.message('NAMES', min_params=1)
+def m_NAMES(cli, ev_msg):
+    if not validate_chan(ev_msg['params'][0]):
+        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+        return
+
+    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+    if not ch:
+        cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+        return
+
+    names_f = lambda x: True
+    if not ch.has_member(cli):
+        names_f = lambda x: 'user:invisible' not in x.client.props
+
+    # XXX - this may need to be split up if we start enforcing an outbound packet size
+    cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
+    cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])

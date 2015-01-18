@@ -26,3 +26,11 @@ user_property_items = {
 
 user_property_items = CaseInsensitiveDict(**user_property_items)
 user_mode_items = {mode: prop for prop, mode in user_property_items.items()}
+
+member_property_items = {
+    'op': '@',
+    'voice': '+',
+}
+
+member_property_items = CaseInsensitiveDict(**member_property_items)
+member_flag_items = {flag: prop for prop, flag in member_property_items.items()}
