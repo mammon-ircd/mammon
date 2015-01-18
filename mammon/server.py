@@ -46,6 +46,9 @@ class ServerContext(object):
 
         self.handle_command_line()
 
+        if not self.nofork:
+            self.daemonize()
+
         logging.info('mammon - starting up, config: {0}'.format(self.config_name))
         self.eventloop = asyncio.get_event_loop()
 
@@ -60,7 +63,7 @@ class ServerContext(object):
         self.pid = os.fork()
         if self.pid < 0:
             sys.exit(1)
-        if process_id != 0:
+        if self.pid != 0:
             sys.exit(0)
         self.pid = os.setsid()
         if self.pid == -1:
@@ -110,9 +113,6 @@ Options:
     def run(self):
         global running_context
         running_context = self
-
-        if not self.nofork:
-            self.daemonize()
 
         self.eventloop.run_forever()
         exit(0)
