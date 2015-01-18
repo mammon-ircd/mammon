@@ -149,7 +149,7 @@ def m_PRIVMSG(cli, ev_msg):
         cli.dump_numeric('401', [target, 'No such nick/channel'])
         return
 
-    if not ch.can_send(target):
+    if not ch.can_send(cli):
         cli.dump_numeric('404', [ch.name, 'Cannot send to channel'])
         return
 
@@ -170,7 +170,7 @@ def m_NOTICE(cli, ev_msg):
         return
 
     ch = cli.ctx.chmgr.get(target)
-    if not ch or not ch.can_send(target):
+    if not ch or not ch.can_send(cli):
         return
 
     msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[ch.name, message])
