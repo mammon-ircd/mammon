@@ -31,6 +31,7 @@ import logging
 import asyncio
 import sys
 import time
+import os
 
 class ServerContext(object):
     options = []
@@ -38,6 +39,7 @@ class ServerContext(object):
     channels = CaseInsensitiveDict()
     listeners = []
     config_name = 'mammond.conf'
+    nofork = False
 
     def __init__(self):
         self.chmgr = ChannelManager(self)
@@ -54,6 +56,23 @@ class ServerContext(object):
 
         self.startstamp = time.strftime('%a %b %d %Y at %H:%M:%S %Z')
 
+    def daemonize(self):
+        self.pid = os.fork()
+        if self.pid < 0:
+            sys.exit(1)
+        if process_id != 0:
+            sys.exit(0)
+        self.pid = os.setsid()
+        if self.pid == -1:
+            sys.exit(1)
+        devnull = "/dev/null"
+        if hasattr(os, "devnull"):
+            devnull = os.devnull
+        devnull_fd = os.open(devnull, os.O_RDWR)
+        os.dup2(devnull_fd, 0)
+        os.dup2(devnull_fd, 1)
+        os.dup2(devnull_fd, 2)
+
     def usage(self):
         cmd = sys.argv[0]
         print("""{0} [options]
@@ -62,6 +81,7 @@ A useless ircd.
 Options:
    --help              - This screen.
    --debug             - Enable debug verbosity
+   --nofork            - Do not fork into background
    --config config     - A JSON configuration file to parse""".format(cmd))
         exit(1)
 
@@ -76,6 +96,8 @@ Options:
                 exit(1)
         if '--debug' in sys.argv:
             logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+        if '--nofork' in sys.argv:
+            self.nofork = True
 
     def handle_config(self):
         self.conf = ConfigHandler(self.config_name, self)
@@ -89,6 +111,8 @@ Options:
         global running_context
         running_context = self
 
-        logging.debug('running_context: {0}'.format(id(running_context)))
+        if not self.nofork:
+            self.daemonize()
+
         self.eventloop.run_forever()
         exit(0)
