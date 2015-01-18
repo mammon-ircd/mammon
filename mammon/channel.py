@@ -78,6 +78,11 @@ class Channel(object):
         matches = tuple(filter(lambda x: x.client == client, self.members))
         return len(matches) > 0
 
+    def can_display(self, client):
+        if 'secret' not in self.props:
+            return True
+        return self.has_member(client)
+
     def dump_message(self, msg, exclusion_list=None):
         if not exclusion_list:
             exclusion_list = list()
@@ -177,3 +182,14 @@ def m_TOPIC(cli, ev_msg):
 
     # distribute new topic to peers
     ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))
+
+# XXX - handle ELIST
+@eventmgr.message('LIST')
+def m_LIST(cli, ev_msg):
+    cli.dump_numeric('321', ['Channel', 'Users', 'Topic'])
+
+    for ch_name, ch in cli.ctx.channels.items():
+        if ch.can_display(cli):
+            cli.dump_numeric('322', [ch.name, len(ch.members), ch.topic])
+
+    cli.dump_numeric('323', ['End of /LIST'])
