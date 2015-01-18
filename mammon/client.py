@@ -200,7 +200,7 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_message(msg)
 
     def sendto_common_peers(self, message):
-        [i.dump_message(message) for i in self.channels]
+        [i.channel.dump_message(message) for i in self.channels]
 
     def dump_isupport(self):
         isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True}
