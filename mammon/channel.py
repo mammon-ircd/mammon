@@ -52,8 +52,8 @@ class Channel(object):
     def __init__(self, name):
         self.name = name
         self.members = []
-        self.topic = None
-        self.topic_setter = None
+        self.topic = str()
+        self.topic_setter = str()
         self.topic_ts = 0
         self.props = CaseInsensitiveDict()
 
@@ -144,3 +144,36 @@ def m_NAMES(cli, ev_msg):
     # XXX - this may need to be split up if we start enforcing an outbound packet size
     cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
     cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])
+
+@eventmgr.message('TOPIC', min_params=1)
+def m_TOPIC(cli, ev_msg):
+    if not validate_chan(ev_msg['params'][0]):
+        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+        return
+
+    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+    if not ch:
+        cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+        return
+
+    if not ch.has_member(cli):
+        cli.dump_numeric('442', [ch.name, "You're not on that channel"])
+        return
+
+    # handle inquiry
+    if len(ev_msg['params']) == 1:
+        if ch.topic:
+            cli.dump_numeric('332', [ch.name, ch.topic])
+            cli.dump_numeric('333', [ch.name, ch.topic_setter, ch.topic_ts])
+            return
+
+        cli.dump_numeric('331', [ch.name, 'No topic is set'])
+        return
+
+    # handle setting
+    ch.topic = ev_msg['params'][1]
+    ch.topic_setter = cli.hostmask
+    ch.topic_ts = cli.ctx.eventloop.time()
+
+    # distribute new topic to peers
+    ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))
