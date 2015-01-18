@@ -168,7 +168,7 @@ class ClientProtocol(asyncio.Protocol):
             else:
                 if i == 'o' and mod == True:
                     continue
-                if 'i' not in user_mode_items:
+                if i not in user_mode_items:
                     self.dump_numeric('501', [i, 'Unknown MODE flag'])
                     continue
                 prop = user_mode_items[i]
