@@ -154,7 +154,7 @@ def m_PRIVMSG(cli, ev_msg):
         return
 
     msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
-    ch.dump_message(msg)
+    ch.dump_message(msg, exclusion_list=[cli])
 
 @eventmgr.message('NOTICE', min_params=2)
 def m_NOTICE(cli, ev_msg):
@@ -174,7 +174,7 @@ def m_NOTICE(cli, ev_msg):
         return
 
     msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[ch.name, message])
-    ch.dump_message(msg)
+    ch.dump_message(msg, exclusion_list=[cli])
 
 @eventmgr.message('MOTD')
 def m_MOTD(cli, ev_msg):
