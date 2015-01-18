@@ -192,6 +192,6 @@ def m_LIST(cli, ev_msg):
 
     for ch_name, ch in cli.ctx.channels.items():
         if ch.can_display(cli):
-            cli.dump_numeric('322', [ch.name, len(ch.members), ch.topic])
+            cli.dump_numeric('322', [ch.name, str(len(ch.members)), ch.topic])
 
     cli.dump_numeric('323', ['End of /LIST'])
