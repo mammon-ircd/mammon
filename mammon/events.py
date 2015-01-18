@@ -144,8 +144,17 @@ def m_PRIVMSG(cli, ev_msg):
         cli_tg.dump_message(msg)
         return
 
-    # XXX - channels not implemented yet
-    cli.dump_numeric('401', [target, 'No such nick/channel'])
+    ch = cli.ctx.chmgr.get(target)
+    if not ch:
+        cli.dump_numeric('401', [target, 'No such nick/channel'])
+        return
+
+    if not ch.can_send(target):
+        cli.dump_numeric('404', [ch.name, 'Cannot send to channel'])
+        return
+
+    msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
+    ch.dump_message(msg)
 
 @eventmgr.message('NOTICE', min_params=2)
 def m_NOTICE(cli, ev_msg):
@@ -159,6 +168,13 @@ def m_NOTICE(cli, ev_msg):
         msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[cli_tg.nickname, message])
         cli_tg.dump_message(msg)
         return
+
+    ch = cli.ctx.chmgr.get(target)
+    if not ch or not ch.can_send(target):
+        return
+
+    msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[ch.name, message])
+    ch.dump_message(msg)
 
 @eventmgr.message('MOTD')
 def m_MOTD(cli, ev_msg):
