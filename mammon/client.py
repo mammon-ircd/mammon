@@ -99,7 +99,7 @@ class ClientProtocol(asyncio.Protocol):
             eventmgr.dispatch(*m.to_event())
 
     # handle a mandatory side effect resulting from rfc1459.
-    def handle_rfc1459_side_effect(self, msg, params=[]):
+    def handle_side_effect(self, msg, params=[]):
         m = RFC1459Message.from_data(msg, source=self.hostmask, params=params)
         m.client = self
         eventmgr.dispatch(*m.to_event())
@@ -221,5 +221,5 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_isupport()
 
         # XXX - LUSERS isn't implemented.
-        # self.handle_rfc1459_side_effect('LUSERS')
-        self.handle_rfc1459_side_effect('MOTD')
+        # self.handle_side_effect('LUSERS')
+        self.handle_side_effect('MOTD')
