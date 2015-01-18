@@ -131,8 +131,8 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_message(m)
         while self.channels:
             i = self.channels.pop(0)
-            i.clients.pop(self)
-            i.dump_message(m)
+            i.channel.part(self)
+            i.channel.dump_message(m)
         self.transport.close()
         if self.registered:
             self.ctx.clients.pop(self.nickname)
