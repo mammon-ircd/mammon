@@ -78,6 +78,14 @@ class Channel(object):
         matches = tuple(filter(lambda x: x.client == client, self.members))
         return len(matches) > 0
 
+    def can_send(self, client):
+        is_member = self.has_member(client)
+        if 'allow-external' not in self.props and not is_member:
+            return False
+
+        # XXX - access checking
+        return True
+
     def can_display(self, client):
         if 'secret' not in self.props:
             return True
