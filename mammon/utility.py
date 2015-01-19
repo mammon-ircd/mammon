@@ -91,7 +91,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
 # part of mammon, under mammon license.
 import string
 
-special = '_-|^{}[]'
+special = '_-|^{}[]`'
 
 nick_allowed_chars = string.ascii_letters + string.digits + special
 nick_allowed_chars_tbl = str.maketrans('', '', nick_allowed_chars)
@@ -105,7 +105,7 @@ def validate_nick(nick):
     badchars = remainder.translate(nick_allowed_chars_tbl)
     return badchars == ''
 
-chan_allowed_chars = string.printable
+chan_allowed_chars = string.ascii_letters + string.digits + special + '`~!@#$%^&*()+=|\\<>/?'
 chan_allowed_chars_tbl = str.maketrans('', '', chan_allowed_chars)
 
 def validate_chan(chan_name):
