@@ -47,6 +47,7 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
 
+        self.connected = True
         self.registered = False
         self.registration_lock = 0
         self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER | REGISTRATION_LOCK_DNS)
@@ -54,6 +55,11 @@ class ClientProtocol(asyncio.Protocol):
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
 
         asyncio.async(self.do_rdns_check())
+
+    def connection_lost(self, exc):
+        if not exc and self.connected:
+            self.exit_client('Connection closed')
+        self.exit_client('Connection error: ' + repr(exc))
 
     def do_rdns_check(self):
         self.dump_notice('Looking up your hostname...')
@@ -135,6 +141,7 @@ class ClientProtocol(asyncio.Protocol):
         self.transport.close()
         if self.registered:
             self.ctx.clients.pop(self.nickname)
+        self.connected = False
 
     def push_registration_lock(self, lock):
         if self.registered:
