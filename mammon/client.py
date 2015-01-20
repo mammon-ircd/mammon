@@ -70,13 +70,16 @@ class ClientProtocol(asyncio.Protocol):
             self.release_registration_lock(REGISTRATION_LOCK_DNS)
             return
 
-        fdns = yield from self.ctx.eventloop.getaddrinfo(rdns[0], rdns[1], proto=socket.IPPROTO_TCP)
-        for fdns_e in fdns:
-            if fdns_e[4][0] == self.realaddr:
-                self.dump_notice('Found your hostname: ' + rdns[0])
-                self.hostname = rdns[0]
-                self.release_registration_lock(REGISTRATION_LOCK_DNS)
-                return
+        try:
+            fdns = yield from self.ctx.eventloop.getaddrinfo(rdns[0], rdns[1], proto=socket.IPPROTO_TCP)
+            for fdns_e in fdns:
+                if fdns_e[4][0] == self.realaddr:
+                    self.dump_notice('Found your hostname: ' + rdns[0])
+                    self.hostname = rdns[0]
+                    self.release_registration_lock(REGISTRATION_LOCK_DNS)
+                    return
+        except:
+            pass
 
         self.dump_notice('Could not find your hostname...')
         self.release_registration_lock(REGISTRATION_LOCK_DNS)
