@@ -47,6 +47,9 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
 
+        self.away_message = str()
+        self.operator = None              # XXX - update when operator objects are implemented
+
         self.connected = True
         self.registered = False
         self.registration_lock = 0
@@ -134,6 +137,17 @@ class ClientProtocol(asyncio.Protocol):
             if self.hostname:
                 hm += '@' + self.hostname
         return hm
+
+    @property
+    def status(self):
+        st = str()
+        if self.away_message:
+            st += 'G'
+        else:
+            st += 'H'
+        if self.operator:
+            st += '*'
+        return st
 
     def exit_client(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])

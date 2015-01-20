@@ -48,6 +48,14 @@ class ChannelMembership(object):
         pstr += self.client.nickname
         return pstr
 
+    @property
+    def who_status(self):
+        pstr = self.client.status
+        for prop, flag in member_property_items.items():
+            if prop in self.props:
+                pstr += flag
+        return pstr
+
 class Channel(object):
     def __init__(self, name):
         self.name = name
