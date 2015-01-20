@@ -38,7 +38,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
     value of a ``'Content-Encoding'`` response header, regardless
     of how the header name was originally stored.
     If the constructor, ``.update``, or equality comparison
-    operations are given keys that have equal ``.lower()``s, the
+    operations are given keys that have equal ``.casefold()``s, the
     behavior is undefined.
     """
     def __init__(self, data=None, **kwargs):
@@ -50,13 +50,13 @@ class CaseInsensitiveDict(collections.MutableMapping):
     def __setitem__(self, key, value):
         # Use the lowercased key for lookups, but store the actual
         # key alongside the value.
-        self._store[key.lower()] = (key, value)
+        self._store[key.casefold()] = (key, value)
 
     def __getitem__(self, key):
-        return self._store[key.lower()][1]
+        return self._store[key.casefold()][1]
 
     def __delitem__(self, key):
-        del self._store[key.lower()]
+        del self._store[key.casefold()]
 
     def __iter__(self):
         return (casedkey for casedkey, mappedvalue in self._store.values())
