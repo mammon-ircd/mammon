@@ -40,4 +40,4 @@ In the meantime the dependencies are:
 
 ## contact
 
-Coming soon to `irc.dereferenced.org #mammon`.
+Join us at `irc.dereferenced.org #mammon` or `irc.dereferenced.org #offtopic` (for now).
