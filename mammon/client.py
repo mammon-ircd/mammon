@@ -157,10 +157,10 @@ class ClientProtocol(asyncio.Protocol):
             i = self.channels.pop(0)
             i.channel.part(self)
             i.channel.dump_message(m)
+        self.connected = False
         self.transport.close()
         if self.registered:
             self.ctx.clients.pop(self.nickname)
-        self.connected = False
 
     def push_registration_lock(self, lock):
         if self.registered:
