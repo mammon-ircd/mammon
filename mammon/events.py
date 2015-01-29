@@ -246,3 +246,24 @@ def m_WHO(cli, ev_msg):
             do_single_who(cli, u)
 
     cli.dump_numeric('315', ['End of /WHO list.'])
+
+# WHOIS nickname
+@eventmgr_rfc1459.message('WHOIS', min_params=1)
+def m_WHOIS(cli, ev_msg):
+    target = ev_msg['params'][0]
+
+    cli_tg = cli.ctx.clients.get(target, None)
+    if not cli_tg:
+        cli.dump_numeric('401', [target, 'No such nick/channel'])
+        return
+
+    channels = filter(lambda x: 'secret' not in x.channel.props or x.channel.has_member(cli), cli_tg.channels)
+
+    cli.dump_numeric('311', [cli_tg.nickname, cli_tg.username, cli_tg.hostname, '*', cli_tg.realname])
+    cli.dump_numeric('319', [cli_tg.nickname, ' '.join([x.channel_name for x in channels])])
+    cli.dump_numeric('312', [cli_tg.nickname, cli.ctx.conf.name, cli.ctx.conf.description])
+    if cli_tg.operator:
+        cli.dump_numeric('313', [cli_tg.nickname, 'is an IRC operator.'])
+    if cli_tg.account:
+        cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
+    cli.dump_numeric('319', [cli_tg.nickname, 'End of /WHOIS list'])
