@@ -50,6 +50,7 @@ class ClientProtocol(asyncio.Protocol):
 
         self.away_message = str()
         self.operator = None              # XXX - update when operator objects are implemented
+        self.account = None               # XXX - update if needed when account objects are implemented
 
         self.connected = True
         self.registered = False
