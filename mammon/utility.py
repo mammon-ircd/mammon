@@ -87,6 +87,113 @@ class CaseInsensitiveDict(collections.MutableMapping):
     def __repr__(self):
         return str(dict(self.items()))
 
+# a modified ExpiringDict implementation
+#
+# Copyright 2013-2015 Rackspace
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+class ExpiringDict(collections.OrderedDict):
+    def __init__(self, max_len, max_age_seconds):
+        collections.OrderedDict.__init__(self)
+        self.max_len = max_len
+        self.max_age = max_age_seconds
+
+    def __contains__(self, key):
+        try:
+            item = OrderedDict.__getitem__(self, key)
+            if time.time() - item[1] < self.max_age:
+                return True
+            else:
+                del self[key]
+        except KeyError:
+            pass
+        return False
+
+    def __getitem__(self, key, with_age=False, max_age=None):
+        item = OrderedDict.__getitem__(self, key)
+        item_age = time.time() - item[1]
+        if not max_age:
+            max_age = self.max_age
+        if item_age < max_age:
+            if with_age:
+                return item[0], item_age
+            else:
+                return item[0]
+        else:
+            del self[key]
+            raise KeyError(key)
+
+    def __setitem__(self, key, value):
+        if len(self) == self.max_len:
+            self.popitem(last=False)
+        OrderedDict.__setitem__(self, key, (value, time.time()))
+
+    def pop(self, key, default=None):
+        try:
+            item = OrderedDict.__getitem__(self, key)
+            del self[key]
+            return item[0]
+        except KeyError:
+            return default
+
+    def get(self, key, default=None, with_age=False, max_age=None):
+        try:
+            return self.__getitem__(key, with_age, max_age)
+        except KeyError:
+            if with_age:
+                return default, None
+            else:
+                return default
+
+    def put(self, key, value, ts=None):
+        if len(self) == self.max_len:
+            self.popitem(last=False)
+        if not ts:
+            ts = time.time()
+        OrderedDict.__setitem__(self, key, (value, ts))
+
+    def items(self):
+        r = []
+        for key in self:
+            try:
+                r.append((key, self[key]))
+            except KeyError:
+                pass
+        return r
+
+    def values(self):
+        r = []
+        for key in self:
+            try:
+                r.append(self[key])
+            except KeyError:
+                pass
+        return r
+
+    def fromkeys(self):
+        raise NotImplementedError()
+    def iteritems(self):
+        raise NotImplementedError()
+    def itervalues(self):
+        raise NotImplementedError()
+    def viewitems(self):
+        raise NotImplementedError()
+    def viewkeys(self):
+        raise NotImplementedError()
+    def viewvalues(self):
+        raise NotImplementedError()
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 import string
