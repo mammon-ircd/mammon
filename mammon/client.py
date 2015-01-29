@@ -62,7 +62,9 @@ class ClientProtocol(asyncio.Protocol):
         asyncio.async(self.do_rdns_check())
 
     def connection_lost(self, exc):
-        if not exc and self.connected:
+        if not self.connected:
+            return
+        if not exc:
             self.exit_client('Connection closed')
             return
         self.exit_client('Connection error: ' + repr(exc))
