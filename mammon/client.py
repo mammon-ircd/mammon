@@ -62,6 +62,12 @@ class ClientProtocol(asyncio.Protocol):
         asyncio.async(self.do_rdns_check())
 
     def connection_lost(self, exc):
+        """Handle loss of connection if it was already not handled.
+        Calling exit_client() can cause this function to be called recursively, so we use IClient.connected
+        as a property to determine whether or not the client is still connected.  If we have already handled
+        this connection loss (most likely by inducing it in exit_client()), then IClient.connected will be
+        False.
+        Side effects: IProtocol.exit_client() is called by this function."""
         if not self.connected:
             return
         if not exc:
@@ -70,6 +76,7 @@ class ClientProtocol(asyncio.Protocol):
         self.exit_client('Connection error: ' + repr(exc))
 
     def do_rdns_check(self):
+        """Handle looking up the client's reverse DNS and validating it as a coroutine."""
         self.dump_notice('Looking up your hostname...')
 
         rdns = yield from self.ctx.eventloop.getnameinfo(self.peername)
