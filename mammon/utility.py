@@ -111,17 +111,17 @@ class ExpiringDict(collections.OrderedDict):
 
     def __contains__(self, key):
         try:
-            item = OrderedDict.__getitem__(self, key)
+            item = OrderedDict.__getitem__(self, key.casefold())
             if time.time() - item[1] < self.max_age:
                 return True
             else:
-                del self[key]
+                del self[key.casefold()]
         except KeyError:
             pass
         return False
 
     def __getitem__(self, key, with_age=False, max_age=None):
-        item = OrderedDict.__getitem__(self, key)
+        item = OrderedDict.__getitem__(self, key.casefold())
         item_age = time.time() - item[1]
         if not max_age:
             max_age = self.max_age
@@ -131,25 +131,25 @@ class ExpiringDict(collections.OrderedDict):
             else:
                 return item[0]
         else:
-            del self[key]
-            raise KeyError(key)
+            del self[key.casefold()]
+            raise KeyError(key.casefold())
 
     def __setitem__(self, key, value):
         if len(self) == self.max_len:
             self.popitem(last=False)
-        OrderedDict.__setitem__(self, key, (value, time.time()))
+        OrderedDict.__setitem__(self, key.casefold(), (value, time.time()))
 
     def pop(self, key, default=None):
         try:
-            item = OrderedDict.__getitem__(self, key)
-            del self[key]
+            item = OrderedDict.__getitem__(self, key.casefold())
+            del self[key.casefold()]
             return item[0]
         except KeyError:
             return default
 
     def get(self, key, default=None, with_age=False, max_age=None):
         try:
-            return self.__getitem__(key, with_age, max_age)
+            return self.__getitem__(key.casefold(), with_age, max_age)
         except KeyError:
             if with_age:
                 return default, None
@@ -161,7 +161,7 @@ class ExpiringDict(collections.OrderedDict):
             self.popitem(last=False)
         if not ts:
             ts = time.time()
-        OrderedDict.__setitem__(self, key, (value, ts))
+        OrderedDict.__setitem__(self, key.casefold(), (value, ts))
 
     def items(self):
         r = []
