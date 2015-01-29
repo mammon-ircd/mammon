@@ -62,6 +62,13 @@ class ClientProtocol(asyncio.Protocol):
 
         asyncio.async(self.do_rdns_check())
 
+    def update_idle(self):
+        self.last_event_ts = self.ctx.eventloop.time()
+
+    @property
+    def idle_time(self):
+        return int(self.ctx.eventloop.time() - self.last_event_ts)
+
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.
         Calling exit_client() can cause this function to be called recursively, so we use IClient.connected
@@ -252,6 +259,9 @@ class ClientProtocol(asyncio.Protocol):
     def register(self):
         self.registered = True
         self.ctx.clients[self.nickname] = self
+
+        self.registration_ts = self.ctx.eventloop.time()
+        self.update_idle()
 
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
