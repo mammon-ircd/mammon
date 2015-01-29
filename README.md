@@ -36,7 +36,8 @@ In the meantime the dependencies are:
 
  * Python 3.4 (or Python 3.3+ with Tulip, or PyPy SVN with Tulip),
  * `ircmatch` library,
- * `ircreactor` library
+ * `ircreactor` library,
+ * `expiringdict` library
 
 ## contact
 
