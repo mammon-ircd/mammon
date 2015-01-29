@@ -29,6 +29,12 @@ from . import __credits__, __version__
 from .utility import validate_nick, validate_chan
 
 class EventManager(EventManagerBase):
+    """
+    An EventManager acts as a hub for consuming intermediate-representation messages and acting on them.
+    It distributes events to 0 or more subscribers.
+
+    Depending on layer, there are multiple event managers.
+    """
     def __init__(self):
         super(EventManager, self).__init__()
 
@@ -70,16 +76,16 @@ class EventManager(EventManagerBase):
             return child_fn
         return parent_fn
 
-eventmgr = EventManager()
+eventmgr_rfc1459 = EventManager()
 
 # - - - BUILTIN EVENTS - - -
 
-@eventmgr.message('QUIT')
+@eventmgr_rfc1459.message('QUIT')
 def m_QUIT(cli, ev_msg):
     reason = ev_msg['params'][0] if ev_msg['params'] else str()
     cli.exit_client('Quit: ' + reason)
 
-@eventmgr.message('NICK', min_params=1)
+@eventmgr_rfc1459.message('NICK', min_params=1)
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
     if not validate_nick(new_nickname):
@@ -97,7 +103,7 @@ def m_NICK(cli, ev_msg):
     cli.nickname = new_nickname
     cli.release_registration_lock(REGISTRATION_LOCK_NICK)
 
-@eventmgr.message('USER', min_params=4)
+@eventmgr_rfc1459.message('USER', min_params=4)
 def m_USER(cli, ev_msg):
     new_username = ev_msg['params'][0]
     new_realname = ev_msg['params'][3]
@@ -105,31 +111,31 @@ def m_USER(cli, ev_msg):
     cli.realname = new_realname
     cli.release_registration_lock(REGISTRATION_LOCK_USER)
 
-@eventmgr.message('PING')
+@eventmgr_rfc1459.message('PING')
 def m_PING(cli, ev_msg):
     reply = ev_msg['params'][0] if ev_msg['params'] else cli.ctx.conf.name
     msg = RFC1459Message.from_data('PONG', source=cli.ctx.conf.name, params=[reply])
     cli.dump_message(msg)
 
-@eventmgr.message('PONG', min_params=1)
+@eventmgr_rfc1459.message('PONG', min_params=1)
 def m_PONG(cli, ev_msg):
     if cli.ping_cookie and int(ev_msg['params'][0]) != cli.ping_cookie:
         return
     cli.last_pong = cli.ctx.eventloop.time()
 
-@eventmgr.message('INFO')
+@eventmgr_rfc1459.message('INFO')
 def m_INFO(cli, ev_msg):
     lines = __credits__.splitlines()
     for line in lines:
         cli.dump_numeric('371', [line])
     cli.dump_numeric('374', ['End of /INFO list.'])
 
-@eventmgr.message('VERSION')
+@eventmgr_rfc1459.message('VERSION')
 def m_VERSION(cli, ev_msg):
     cli.dump_numeric('351', ['mammon-' + str(__version__), cli.ctx.conf.name])
     cli.dump_isupport()
 
-@eventmgr.message('PRIVMSG', min_params=2)
+@eventmgr_rfc1459.message('PRIVMSG', min_params=2)
 def m_PRIVMSG(cli, ev_msg):
     target = ev_msg['params'][0]
     message = ev_msg['params'][1]
@@ -155,7 +161,7 @@ def m_PRIVMSG(cli, ev_msg):
     msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
     ch.dump_message(msg, exclusion_list=[cli])
 
-@eventmgr.message('NOTICE', min_params=2)
+@eventmgr_rfc1459.message('NOTICE', min_params=2)
 def m_NOTICE(cli, ev_msg):
     target = ev_msg['params'][0]
     message = ev_msg['params'][1]
@@ -175,7 +181,7 @@ def m_NOTICE(cli, ev_msg):
     msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[ch.name, message])
     ch.dump_message(msg, exclusion_list=[cli])
 
-@eventmgr.message('MOTD')
+@eventmgr_rfc1459.message('MOTD')
 def m_MOTD(cli, ev_msg):
     if cli.ctx.conf.motd:
         cli.dump_numeric('375', ['- ' + cli.ctx.conf.name + ' Message of the Day -'])
@@ -185,7 +191,7 @@ def m_MOTD(cli, ev_msg):
     else:
         cli.dump_numeric('422', ['MOTD File is missing'])
 
-@eventmgr.message('MODE', min_params=1)
+@eventmgr_rfc1459.message('MODE', min_params=1)
 def m_MODE(cli, ev_msg):
     if ev_msg['params'][0] == cli.nickname:
         if len(ev_msg['params']) == 1:
@@ -199,7 +205,7 @@ def m_MODE(cli, ev_msg):
 
     # XXX - channels not implemented
 
-@eventmgr.message('ISON', min_params=1)
+@eventmgr_rfc1459.message('ISON', min_params=1)
 def m_ISON(cli, ev_msg):
     matches = []
 
@@ -216,7 +222,7 @@ def m_ISON(cli, ev_msg):
 
 # WHO 0 o
 # WHO #channel
-@eventmgr.message('WHO', min_params=1)
+@eventmgr_rfc1459.message('WHO', min_params=1)
 def m_WHO(cli, ev_msg):
     oper_query = False
     if len(ev_msg['params']) > 1:

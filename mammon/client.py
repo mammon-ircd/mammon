@@ -23,7 +23,7 @@ import copy
 from ircreactor.envelope import RFC1459Message
 from .utility import CaseInsensitiveDict
 from .property import user_property_items, user_mode_items
-from .server import eventmgr, get_context
+from .server import eventmgr_rfc1459, get_context
 from . import __version__
 
 REGISTRATION_LOCK_NICK = 0x1
@@ -31,7 +31,7 @@ REGISTRATION_LOCK_USER = 0x2
 REGISTRATION_LOCK_DNS  = 0x4
 
 # XXX - handle ping timeout
-# XXX - exit_client() could eventually be handled using eventmgr.dispatch()
+# XXX - exit_client() could eventually be handled using self.eventmgr.dispatch()
 class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.ctx = get_context()
@@ -57,6 +57,7 @@ class ClientProtocol(asyncio.Protocol):
         self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER | REGISTRATION_LOCK_DNS)
 
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
+        self.eventmgr = eventmgr_rfc1459
 
         asyncio.async(self.do_rdns_check())
 
@@ -109,13 +110,13 @@ class ClientProtocol(asyncio.Protocol):
     def drain_queue(self):
         while self.recvq:
             m = self.recvq.pop(0)
-            eventmgr.dispatch(*m.to_event())
+            self.eventmgr.dispatch(*m.to_event())
 
     # handle a mandatory side effect resulting from rfc1459.
     def handle_side_effect(self, msg, params=[]):
         m = RFC1459Message.from_data(msg, source=self.hostmask, params=params)
         m.client = self
-        eventmgr.dispatch(*m.to_event())
+        self.eventmgr.dispatch(*m.to_event())
 
     def dump_message(self, m):
         self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
