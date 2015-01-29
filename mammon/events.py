@@ -257,10 +257,11 @@ def m_WHOIS(cli, ev_msg):
         cli.dump_numeric('401', [target, 'No such nick/channel'])
         return
 
-    channels = filter(lambda x: 'secret' not in x.channel.props or x.channel.has_member(cli), cli_tg.channels)
+    channels = tuple(filter(lambda x: 'secret' not in x.channel.props or x.channel.has_member(cli), cli_tg.channels))
 
     cli.dump_numeric('311', [cli_tg.nickname, cli_tg.username, cli_tg.hostname, '*', cli_tg.realname])
-    cli.dump_numeric('319', [cli_tg.nickname, ' '.join([x.channel_name for x in channels])])
+    if channels:
+        cli.dump_numeric('319', [cli_tg.nickname, ' '.join([x.channel_name for x in channels] + ' ')])
     cli.dump_numeric('312', [cli_tg.nickname, cli.ctx.conf.name, cli.ctx.conf.description])
     if cli_tg.operator:
         cli.dump_numeric('313', [cli_tg.nickname, 'is an IRC operator.'])
