@@ -62,7 +62,7 @@ class EventManager(EventManagerBase):
             return func
         return wrapped_fn
 
-    def message(self, verb, min_params=0):
+    def message(self, verb, min_params=0, update_idle=False):
         def parent_fn(func):
             @wraps(func)
             def child_fn(ev_msg):
@@ -71,6 +71,8 @@ class EventManager(EventManagerBase):
                     msg = RFC1459Message.from_data('461', source=cli.ctx.conf.name, params=[cli.nickname, ev_msg['verb'], 'Not enough parameters'])
                     cli.dump_message(msg)
                     return
+                if update_idle:
+                    cli.update_idle()
                 return func(cli, ev_msg)
             self.register('rfc1459 message ' + verb, child_fn)
             return child_fn
@@ -135,7 +137,7 @@ def m_VERSION(cli, ev_msg):
     cli.dump_numeric('351', ['mammon-' + str(__version__), cli.ctx.conf.name])
     cli.dump_isupport()
 
-@eventmgr_rfc1459.message('PRIVMSG', min_params=2)
+@eventmgr_rfc1459.message('PRIVMSG', min_params=2, update_idle=True)
 def m_PRIVMSG(cli, ev_msg):
     target = ev_msg['params'][0]
     message = ev_msg['params'][1]

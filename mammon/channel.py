@@ -122,7 +122,7 @@ class Channel(object):
 # --- rfc1459 channel management commands ---
 from .events import eventmgr_rfc1459
 
-@eventmgr_rfc1459.message('JOIN', min_params=1)
+@eventmgr_rfc1459.message('JOIN', min_params=1, update_idle=True)
 def m_JOIN(cli, ev_msg):
     if not validate_chan(ev_msg['params'][0]):
         cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
@@ -140,7 +140,7 @@ def m_JOIN(cli, ev_msg):
 
     cli.handle_side_effect('NAMES', params=[ch.name])
 
-@eventmgr_rfc1459.message('PART', min_params=1)
+@eventmgr_rfc1459.message('PART', min_params=1, update_idle=True)
 def m_PART(cli, ev_msg):
     if not validate_chan(ev_msg['params'][0]):
         cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
@@ -177,7 +177,7 @@ def m_NAMES(cli, ev_msg):
     cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
     cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])
 
-@eventmgr_rfc1459.message('TOPIC', min_params=1)
+@eventmgr_rfc1459.message('TOPIC', min_params=1, update_idle=True)
 def m_TOPIC(cli, ev_msg):
     if not validate_chan(ev_msg['params'][0]):
         cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
