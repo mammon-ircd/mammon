@@ -269,4 +269,5 @@ def m_WHOIS(cli, ev_msg):
         cli.dump_numeric('313', [cli_tg.nickname, 'is an IRC operator.'])
     if cli_tg.account:
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
+    cli.dump_numeric('317', [cli_tg.nickname, self.idle_time, self.registration_ts, 'seconds idle, signon time'])
     cli.dump_numeric('319', [cli_tg.nickname, 'End of /WHOIS list.'])
