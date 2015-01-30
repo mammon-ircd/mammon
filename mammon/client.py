@@ -182,7 +182,7 @@ class ClientProtocol(asyncio.Protocol):
 
     def exit(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
-        self.dump_message(m)
+        self.sendto_common_peers(m)
         self.connected = False
         self.transport.close()
         if not self.registered:
@@ -190,7 +190,6 @@ class ClientProtocol(asyncio.Protocol):
         while self.channels:
             i = self.channels.pop(0)
             i.channel.part(self)
-            i.channel.dump_message(m)
         self.ctx.clients.pop(self.nickname)
         ClientHistoryEntry(self).register()
 
