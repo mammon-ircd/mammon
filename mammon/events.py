@@ -271,7 +271,7 @@ def m_WHOIS(cli, ev_msg):
     if cli_tg.account:
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
     cli.dump_numeric('317', [cli_tg.nickname, cli_tg.idle_time, cli_tg.registration_ts, 'seconds idle, signon time'])
-    cli.dump_numeric('319', [cli_tg.nickname, 'End of /WHOIS list.'])
+    cli.dump_numeric('318', [cli_tg.nickname, 'End of /WHOIS list.'])
 
 # WHOWAS nickname
 @eventmgr_rfc1459.message('WHOWAS', min_params=1)
