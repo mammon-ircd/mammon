@@ -78,6 +78,7 @@ class EventManager(EventManagerBase):
             return child_fn
         return parent_fn
 
+eventmgr_core = EventManager()
 eventmgr_rfc1459 = EventManager()
 
 # - - - BUILTIN EVENTS - - -
