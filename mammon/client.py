@@ -21,7 +21,7 @@ import socket
 import copy
 
 from ircreactor.envelope import RFC1459Message
-from .utility import CaseInsensitiveDict
+from .utility import CaseInsensitiveDict, uniq
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, get_context
 from . import __version__
@@ -257,8 +257,11 @@ class ClientProtocol(asyncio.Protocol):
         msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
         self.dump_message(msg)
 
-    def sendto_common_peers(self, message):
-        [i.channel.dump_message(message) for i in self.channels]
+    def sendto_common_peers(self, message, exclude=[]):
+        base = [i.client for c in self.channels for i in c.members if i.client not in exclude]
+        peerlist = uniq(base)
+
+        [i.dump_message(message) for i in peerlist]
 
     def dump_isupport(self):
         isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True}

@@ -221,3 +221,10 @@ def validate_chan(chan_name):
         return False
     badchars = chan_name[1:].translate(chan_allowed_chars_tbl)
     return badchars == ''
+
+def uniq(input):
+    output = []
+    for x in input:
+        if x not in output:
+            output.append(x)
+    return output
