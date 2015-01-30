@@ -43,7 +43,7 @@ class ClientHistoryEntry(object):
         self.ctx.client_history[self.nickname] = self
 
 # XXX - handle ping timeout
-# XXX - exit_client() could eventually be handled using self.eventmgr.dispatch()
+# XXX - exit() could eventually be handled using self.eventmgr.dispatch()
 class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.ctx = get_context()
@@ -83,17 +83,17 @@ class ClientProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.
-        Calling exit_client() can cause this function to be called recursively, so we use IClient.connected
+        Calling exit() can cause this function to be called recursively, so we use IClient.connected
         as a property to determine whether or not the client is still connected.  If we have already handled
-        this connection loss (most likely by inducing it in exit_client()), then IClient.connected will be
+        this connection loss (most likely by inducing it in exit()), then IClient.connected will be
         False.
-        Side effects: IProtocol.exit_client() is called by this function."""
+        Side effects: IProtocol.exit() is called by this function."""
         if not self.connected:
             return
         if not exc:
-            self.exit_client('Connection closed')
+            self.exit('Connection closed')
             return
-        self.exit_client('Connection error: ' + repr(exc))
+        self.exit('Connection error: ' + repr(exc))
 
     def do_rdns_check(self):
         """Handle looking up the client's reverse DNS and validating it as a coroutine."""
@@ -128,7 +128,7 @@ class ClientProtocol(asyncio.Protocol):
 
         # logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
         if len(self.recvq) > self.ctx.conf.recvq_len:
-            self.exit_client('Excess flood')
+            self.exit('Excess flood')
             return
 
         self.recvq.append(m)
@@ -180,7 +180,7 @@ class ClientProtocol(asyncio.Protocol):
             st += '*'
         return st
 
-    def exit_client(self, message):
+    def exit(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
         self.dump_message(m)
         self.connected = False
