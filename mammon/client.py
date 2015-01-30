@@ -30,6 +30,18 @@ REGISTRATION_LOCK_NICK = 0x1
 REGISTRATION_LOCK_USER = 0x2
 REGISTRATION_LOCK_DNS  = 0x4
 
+class ClientHistoryEntry(object):
+    def __init__(self, cli):
+        self.nickname = cli.nickname
+        self.username = cli.username
+        self.hostname = cli.hostname
+        self.realname = cli.realname
+        self.account = cli.account
+        self.ctx = cli.ctx
+
+    def register(self):
+        self.ctx.client_history[self.nickname] = self
+
 # XXX - handle ping timeout
 # XXX - exit_client() could eventually be handled using self.eventmgr.dispatch()
 class ClientProtocol(asyncio.Protocol):
@@ -171,14 +183,16 @@ class ClientProtocol(asyncio.Protocol):
     def exit_client(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
         self.dump_message(m)
+        self.connected = False
+        self.transport.close()
+        if not self.registered:
+            return
         while self.channels:
             i = self.channels.pop(0)
             i.channel.part(self)
             i.channel.dump_message(m)
-        self.connected = False
-        self.transport.close()
-        if self.registered:
-            self.ctx.clients.pop(self.nickname)
+        self.ctx.clients.pop(self.nickname)
+        ClientHistoryEntry(self).register()
 
     def push_registration_lock(self, lock):
         if self.registered:

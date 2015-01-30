@@ -272,3 +272,19 @@ def m_WHOIS(cli, ev_msg):
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
     cli.dump_numeric('317', [cli_tg.nickname, cli_tg.idle_time, cli_tg.registration_ts, 'seconds idle, signon time'])
     cli.dump_numeric('319', [cli_tg.nickname, 'End of /WHOIS list.'])
+
+# WHOWAS nickname
+@eventmgr_rfc1459.message('WHOWAS', min_params=1)
+def m_WHOWAS(cli, ev_msg):
+    target = ev_msg['params'][0]
+
+    whowas_entry = cli.ctx.client_history.get(target, None)
+    if not cli_tg:
+        cli.dump_numeric('406', [target, 'There was no such nickname'])
+        return
+
+    cli.dump_numeric('314', [whowas_entry.nickname, whowas_entry.username, whowas_entry.hostname, '*', whowas_entry.realname])
+    cli.dump_numeric('312', [whowas_entry.nickname, cli.ctx.conf.name, cli.ctx.conf.description])
+    if whowas_entry.account:
+        cli.dump_numeric('330', [whowas_entry.nickname, whowas_entry.account, 'was logged in as'])
+    cli.dump_numeric('369', [whowas_entry.nickname, 'End of WHOWAS'])

@@ -24,7 +24,7 @@ def get_context():
     return running_context
 
 from .config import ConfigHandler
-from .utility import CaseInsensitiveDict
+from .utility import CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
 
 import logging
@@ -46,6 +46,7 @@ class ServerContext(object):
         self.logger.setLevel(logging.DEBUG)
 
         self.chmgr = ChannelManager(self)
+        self.client_history = ExpiringDict(max_len=1024, max_age_seconds=86400)
 
         self.handle_command_line()
 
