@@ -279,7 +279,7 @@ def m_WHOWAS(cli, ev_msg):
     target = ev_msg['params'][0]
 
     whowas_entry = cli.ctx.client_history.get(target, None)
-    if not cli_tg:
+    if not whowas_entry:
         cli.dump_numeric('406', [target, 'There was no such nickname'])
         return
 
