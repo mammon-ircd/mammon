@@ -86,7 +86,7 @@ eventmgr_rfc1459 = EventManager()
 @eventmgr_rfc1459.message('QUIT')
 def m_QUIT(cli, ev_msg):
     reason = ev_msg['params'][0] if ev_msg['params'] else str()
-    cli.exit_client('Quit: ' + reason)
+    cli.exit('Quit: ' + reason)
 
 @eventmgr_rfc1459.message('NICK', min_params=1)
 def m_NICK(cli, ev_msg):
