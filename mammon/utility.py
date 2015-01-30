@@ -111,7 +111,7 @@ class ExpiringDict(collections.OrderedDict):
 
     def __contains__(self, key):
         try:
-            item = OrderedDict.__getitem__(self, key.casefold())
+            item = collections.OrderedDict.__getitem__(self, key.casefold())
             if time.time() - item[1] < self.max_age:
                 return True
             else:
@@ -121,7 +121,7 @@ class ExpiringDict(collections.OrderedDict):
         return False
 
     def __getitem__(self, key, with_age=False, max_age=None):
-        item = OrderedDict.__getitem__(self, key.casefold())
+        item = collections.OrderedDict.__getitem__(self, key.casefold())
         item_age = time.time() - item[1]
         if not max_age:
             max_age = self.max_age
@@ -137,11 +137,11 @@ class ExpiringDict(collections.OrderedDict):
     def __setitem__(self, key, value):
         if len(self) == self.max_len:
             self.popitem(last=False)
-        OrderedDict.__setitem__(self, key.casefold(), (value, time.time()))
+        collections.OrderedDict.__setitem__(self, key.casefold(), (value, time.time()))
 
     def pop(self, key, default=None):
         try:
-            item = OrderedDict.__getitem__(self, key.casefold())
+            item = collections.OrderedDict.__getitem__(self, key.casefold())
             del self[key.casefold()]
             return item[0]
         except KeyError:
@@ -161,7 +161,7 @@ class ExpiringDict(collections.OrderedDict):
             self.popitem(last=False)
         if not ts:
             ts = time.time()
-        OrderedDict.__setitem__(self, key.casefold(), (value, ts))
+        collections.OrderedDict.__setitem__(self, key.casefold(), (value, ts))
 
     def items(self):
         r = []
