@@ -257,7 +257,7 @@ class ClientProtocol(asyncio.Protocol):
         self.dump_message(msg)
 
     def sendto_common_peers(self, message, exclude=[]):
-        base = [i.client for c in self.channels for i in c.members if i.client not in exclude]
+        base = [i.client for c in self.channels for i in c.members if i.client not in exclude] + [self]
         peerlist = uniq(base)
 
         [i.dump_message(message) for i in peerlist]
