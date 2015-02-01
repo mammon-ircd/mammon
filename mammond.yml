@@ -1,0 +1,31 @@
+# The server object defines the server information parameters.
+server:
+  # name - the server name
+  name: "irc.dereferenced.org"
+
+  # description - the description of the server on the network
+  description: "breaking everything, everywhere"
+
+  # network - the NETWORK= name in 005 for rfc1459 clients
+  network: "dereferenced.org"
+
+  # recvq_len - the maximum number of lines that can be in a client's recvq
+  recvq_len: 20
+
+  # motd - the motd content (will later be file)
+  motd:
+  - "This is mammond's default motd.  You can change it in mammond.yml."
+
+# The listeners object is a list of listeners.
+listeners:
+- {"host": "0.0.0.0", "port": 6667, "ssl": false}
+
+# The logs section is a list of logs.
+logs:
+- {
+     # path - the path of the logfile
+     "path": "mammond.log",
+
+     # level - the log level of the file
+     "level": "debug"
+  }
