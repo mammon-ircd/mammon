@@ -38,7 +38,7 @@ class ServerContext(object):
     clients = CaseInsensitiveDict()
     channels = CaseInsensitiveDict()
     listeners = []
-    config_name = 'mammond.conf'
+    config_name = 'mammond.yml'
     nofork = False
 
     def __init__(self):

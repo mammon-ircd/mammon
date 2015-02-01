@@ -15,11 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-try:
-    import simplejson as json
-except:
-    import json
-
+import yaml
 import asyncio
 import logging
 from .client import ClientProtocol
@@ -35,10 +31,13 @@ class ConfigHandler(object):
         self.config_name = config_name
         self.ctx = ctx
 
-        self.config_st = json.loads(open(config_name, 'r').read())
+        self.config_st = yaml.load(open(config_name, 'r'))
 
     def process(self):
         for k, v in self.config_st.items():
+            setattr(self, k, v)
+
+        for k, v in self.config_st['server'].items():
             setattr(self, k, v)
 
         for l in self.listeners:
