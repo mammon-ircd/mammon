@@ -112,6 +112,7 @@ Options:
         self.conf.process()
         self.open_listeners()
         self.open_logs()
+        self.load_modules()
 
     def open_listeners(self):
         [self.eventloop.create_task(lstn) for lstn in self.listeners]
