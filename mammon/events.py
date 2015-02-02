@@ -237,22 +237,22 @@ def m_WHO(cli, ev_msg):
     if len(ev_msg['params']) > 1:
         oper_query = 'o' in ev_msg['params'][1]
 
-    def do_single_who(cli, target, status=None):
+    def do_single_who(cli, tparam, target, status=None):
         if oper_query and not target.operator:
             return
         if not status:
             status = target.status
-        cli.dump_numeric('352', [target.username, target.hostname, target.servername, target.nickname, status, '0 ' + target.realname])
+        cli.dump_numeric('352', [tparam, target.username, target.hostname, target.servername, target.nickname, status, '0 ' + target.realname])
 
     target = ev_msg['params'][0]
     if target[0] == '#':
         chan = cli.ctx.chmgr.get(target)
         if chan:
-            [do_single_who(cli, i.client, i.who_status) for i in chan.members]
+            [do_single_who(cli, target, i.client, i.who_status) for i in chan.members]
     else:
         u = cli.ctx.clients.get(target, None)
         if u:
-            do_single_who(cli, u)
+            do_single_who(cli, target, u)
 
     cli.dump_numeric('315', ['End of /WHO list.'])
 
