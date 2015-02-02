@@ -29,3 +29,7 @@ logs:
      # level - the log level of the file
      "level": "debug"
   }
+
+# The extensions section is a list of extension modules to load.
+extensions:
+- mammon.ext.rfc1459.42
