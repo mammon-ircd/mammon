@@ -148,13 +148,17 @@ class ClientProtocol(asyncio.Protocol):
         self.eventmgr.dispatch(*m.to_event())
 
     def dump_message(self, m):
+        "Dumps an RFC1459 format message to the socket."
         self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
+        """Dump a numeric to a connected client.
+        This includes the `target` field that numerics have for routing.  You do *not* need to include it."""
         msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=[self.nickname] + params)
         self.dump_message(msg)
 
     def dump_notice(self, message):
+        "Dump a NOTICE to a connected client."
         msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=[self.nickname, '*** ' + message])
         self.dump_message(msg)
 
