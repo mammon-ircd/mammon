@@ -32,6 +32,7 @@ import asyncio
 import sys
 import time
 import os
+import importlib
 
 class ServerContext(object):
     options = []
@@ -114,6 +115,15 @@ Options:
 
     def open_listeners(self):
         [self.eventloop.create_task(lstn) for lstn in self.listeners]
+
+    def load_module(self, mod):
+        try:
+            importlib.import_module(mod)
+        except:
+            self.logger.info('rejecting module ' + mod + ' because it failed to import')
+
+    def load_modules(self):
+        [self.load_module(m) for m in self.conf.extensions]
 
     def open_logs(self):
         if self.conf.logs:
