@@ -62,7 +62,7 @@ class EventManager(EventManagerBase):
             return func
         return wrapped_fn
 
-    def message(self, verb, min_params=0, update_idle=False):
+    def message(self, verb, min_params=0, update_idle=False, priority=10):
         def parent_fn(func):
             @wraps(func)
             def child_fn(ev_msg):
@@ -74,7 +74,13 @@ class EventManager(EventManagerBase):
                 if update_idle:
                     cli.update_idle()
                 return func(cli, ev_msg)
-            self.register('rfc1459 message ' + verb, child_fn)
+            self.register('rfc1459 message ' + verb, child_fn, priority=priority)
+            return child_fn
+        return parent_fn
+
+    def handler(self, message, priority=10):
+        def parent_fn(func):
+            self.register(message, func, priority=priority)
             return child_fn
         return parent_fn
 
