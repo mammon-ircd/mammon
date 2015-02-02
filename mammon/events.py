@@ -254,7 +254,7 @@ def m_WHO(cli, ev_msg):
         if u:
             do_single_who(cli, target, u)
 
-    cli.dump_numeric('315', ['End of /WHO list.'])
+    cli.dump_numeric('315', [target, 'End of /WHO list.'])
 
 # WHOIS nickname
 @eventmgr_rfc1459.message('WHOIS', min_params=1)
