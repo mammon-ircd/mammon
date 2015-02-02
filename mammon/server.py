@@ -26,6 +26,7 @@ def get_context():
 from .config import ConfigHandler
 from .utility import CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
+from .capability import caplist
 
 import logging
 import asyncio
