@@ -63,11 +63,24 @@ def m_CAP_LS(cli, ev_msg):
     if l:
         cli.dump_numeric('CAP', ['LS', ' '.join(l)])
 
+def m_CAP_LIST(cli, ev_msg):
+    # CAP uses numeric rules, so we can just cheat and use dump_numeric().
+    l = list()
+    for cap in cli.caps.values():
+        l.append(cap.name)
+        if len(l) > 8:
+            cli.dump_numeric('CAP', ['LIST', '*', ' '.join(l)])
+            l = list()
+
+    if l:
+        cli.dump_numeric('CAP', ['LIST', ' '.join(l)])
+
 def m_CAP_END(cli, ev_msg):
     cli.release_registration_lock(REGISTRATION_LOCK_CAP)
 
 cap_cmds = {
     'LS': m_CAP_LS,
+    'LIST': m_CAP_LIST,
     'END': m_CAP_END
 }
 cap_cmds = CaseInsensitiveDict(**cap_cmds)
