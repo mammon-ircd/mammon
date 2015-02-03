@@ -52,7 +52,6 @@ def m_CAP_LS(cli, ev_msg):
     if is_ircv3_2:
         cli.caps['cap-notify'] = caplist['cap-notify']
 
-    # CAP uses numeric rules, so we can just cheat and use dump_numeric().
     l = list()
     for cap in caplist.values():
         l.append(cap.atom(is_ircv3_2))
@@ -64,7 +63,6 @@ def m_CAP_LS(cli, ev_msg):
         cli.dump_numeric('CAP', ['LS', ' '.join(l)])
 
 def m_CAP_LIST(cli, ev_msg):
-    # CAP uses numeric rules, so we can just cheat and use dump_numeric().
     l = list()
     for cap in cli.caps.values():
         l.append(cap.name)
@@ -75,10 +73,26 @@ def m_CAP_LIST(cli, ev_msg):
     if l:
         cli.dump_numeric('CAP', ['LIST', ' '.join(l)])
 
+def m_CAP_CLEAR(cli, ev_msg):
+    to_remove = list(filter(lambda x: not x.sticky, cli.caps.values()))
+
+    changelist = list()
+    while to_remove:
+        cap = to_remove.pop(0)
+        cap = cli.caps.pop(cap.name)
+        changelist.append('-' + cap.name)
+        if len(changelist) > 8:
+            cli.dump_numeric('CAP', ['ACK', ' '.join(changelist)])
+            changelist = list()
+
+    if changelist:
+        cli.dump_numeric('CAP', ['ACK', ' '.join(changelist)])
+
 def m_CAP_END(cli, ev_msg):
     cli.release_registration_lock(REGISTRATION_LOCK_CAP)
 
 cap_cmds = {
+    'CLEAR': m_CAP_CLEAR,
     'LS': m_CAP_LS,
     'LIST': m_CAP_LIST,
     'END': m_CAP_END
