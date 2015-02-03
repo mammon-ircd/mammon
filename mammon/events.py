@@ -47,7 +47,7 @@ class EventManager(EventManagerBase):
     def handler(self, message, priority=10):
         def parent_fn(func):
             self.register(message, func, priority=priority)
-            return child_fn
+            return func
         return parent_fn
 
 class RFC1459EventManager(EventManager):
