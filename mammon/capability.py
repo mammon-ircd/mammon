@@ -131,12 +131,47 @@ def m_CAP_REQ(cli, ev_msg):
 
     cli.dump_numeric('CAP', ['ACK', args])
 
+# XXX: implement CAP ACK for real if it becomes necessary (nothing uses it)
+def m_CAP_ACK(cli, ev_msg):
+    cap_add = []
+    cap_del = []
+    args = ev_msg['params'][1]
+
+    def send_NAK(cli):
+        cli.dump_numeric('CAP', ['NAK', args])
+
+    # sanity check the ACK, send NAK if it makes no sense
+    for arg in args.split():
+        negate = arg[0] == '-'
+
+        if negate:
+            arg = arg[1:]
+
+        if arg not in caplist:
+            dump_NAK(cli)
+            return
+
+        if negate:
+            cap = caplist[arg]
+            if cap.sticky:
+                send_NAK(cli)
+                return
+            continue
+
+        if arg not in cli.caps:
+            dump_NAK(cli)
+            return
+
+    # XXX: make the CAP change atomic someday (code would go here)
+    cli.dump_numeric('CAP', ['ACK', args])
+
 cap_cmds = {
     'CLEAR': m_CAP_CLEAR,
     'LS': m_CAP_LS,
     'LIST': m_CAP_LIST,
     'END': m_CAP_END,
     'REQ': m_CAP_REQ,
+    'ACK': m_CAP_ACK,
 }
 cap_cmds = CaseInsensitiveDict(**cap_cmds)
 
