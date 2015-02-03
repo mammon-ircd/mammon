@@ -150,6 +150,9 @@ class ClientProtocol(asyncio.Protocol):
 
     def dump_message(self, m):
         "Dumps an RFC1459 format message to the socket."
+        m.client = self
+        eventmgr_core.dispatch('outbound message postprocess', m)
+
         self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
