@@ -58,6 +58,7 @@ class ClientProtocol(asyncio.Protocol):
         self.realaddr = self.peername[0]
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
+        self.caps = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
 
         self.away_message = str()

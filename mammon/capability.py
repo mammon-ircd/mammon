@@ -15,10 +15,13 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+REGISTRATION_LOCK_CAP = 0x8
+
+from mammon.utility import CaseInsensitiveDict
 from mammon.events import eventmgr_rfc1459
 from ircreactor.envelope import RFC1459Message
 
-caplist = {}
+caplist = CaseInsensitiveDict()
 
 class Capability(object):
     """A capability object describes a capability token offered by
@@ -42,10 +45,32 @@ class Capability(object):
             pstr += '=' + self.value
         return pstr
 
-Capability('server-time')
 Capability('cap-notify')
 
-cap_cmds = {}
+def m_CAP_LS(cli, ev_msg):
+    is_ircv3_2 = len(ev_msg['params']) > 1 and int(ev_msg['params'][1]) > 301
+    if is_ircv3_2:
+        cli.caps['cap-notify'] = caplist['cap-notify']
+
+    # CAP uses numeric rules, so we can just cheat and use dump_numeric().
+    l = list()
+    for cap in caplist.values():
+        l.append(cap.atom(is_ircv3_2))
+        if len(l) > 8:
+            cli.dump_numeric('CAP', ['LS', '*', ' '.join(l)])
+            l = list()
+
+    if l:
+        cli.dump_numeric('CAP', ['LS', ' '.join(l)])
+
+def m_CAP_END(cli, ev_msg):
+    cli.release_registration_lock(REGISTRATION_LOCK_CAP)
+
+cap_cmds = {
+    'LS': m_CAP_LS,
+    'END': m_CAP_END
+}
+cap_cmds = CaseInsensitiveDict(**cap_cmds)
 
 @eventmgr_rfc1459.message('CAP', min_params=1)
 def m_CAP(cli, ev_msg):
@@ -54,5 +79,8 @@ def m_CAP(cli, ev_msg):
     if subcmd not in cap_cmds:
         cli.dump_numeric('410', [subcmd, 'Invalid CAP subcommand'])
         return
+
+    if subcmd != 'END':
+        cli.push_registration_lock(REGISTRATION_LOCK_CAP)
 
     cap_cmds[subcmd](cli, ev_msg)
