@@ -38,6 +38,24 @@ class EventManager(EventManagerBase):
     def __init__(self):
         super(EventManager, self).__init__()
 
+    def connect(self, event):
+        def wrapped_fn(func):
+            self.register(event, func)
+            return func
+        return wrapped_fn
+
+    def handler(self, message, priority=10):
+        def parent_fn(func):
+            self.register(message, func, priority=priority)
+            return child_fn
+        return parent_fn
+
+class RFC1459EventManager(EventManager):
+    """A specialized event manager for RFC1459 commands.
+    If an EventObject does not exist, then we send numeric 421."""
+    def __init__(self):
+        super(RFC1459EventManager, self).__init__()
+
     def dispatch(self, event, ev_msg):
         """Dispatch an event.
                event: name of the event (str)
@@ -53,14 +71,7 @@ class EventManager(EventManagerBase):
               ev_msg: non-optional arguments dictionary.
            Side effects: None"""
         cli = ev_msg['client']
-        msg = RFC1459Message.from_data('421', source=cli.ctx.conf.name, params=[cli.nickname, ev_msg['verb'], 'Unknown command'])
-        cli.dump_message(msg)
-
-    def connect(self, event):
-        def wrapped_fn(func):
-            self.register(event, func)
-            return func
-        return wrapped_fn
+        cli.dump_numeric('421', [ev_msg['verb'], 'Unknown command'])
 
     def message(self, verb, min_params=0, update_idle=False, priority=10):
         def parent_fn(func):
@@ -78,14 +89,8 @@ class EventManager(EventManagerBase):
             return child_fn
         return parent_fn
 
-    def handler(self, message, priority=10):
-        def parent_fn(func):
-            self.register(message, func, priority=priority)
-            return child_fn
-        return parent_fn
-
 eventmgr_core = EventManager()
-eventmgr_rfc1459 = EventManager()
+eventmgr_rfc1459 = RFC1459EventManager()
 
 # - - - BUILTIN EVENTS - - -
 
