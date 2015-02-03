@@ -91,11 +91,52 @@ def m_CAP_CLEAR(cli, ev_msg):
 def m_CAP_END(cli, ev_msg):
     cli.release_registration_lock(REGISTRATION_LOCK_CAP)
 
+def m_CAP_REQ(cli, ev_msg):
+    cap_add = []
+    cap_del = []
+    args = ev_msg['params'][1]
+
+    def send_NAK(cli):
+        cli.dump_numeric('CAP', ['NAK', args])
+
+    for arg in args.split():
+        negate = arg[0] == '-'
+
+        if negate:
+            arg = arg[1:]
+
+        if arg not in caplist:
+            dump_NAK(cli)
+            return
+
+        if negate:
+            if arg not in cli.caps:
+                dump_NAK(cli)
+                return
+            cap_del.append(arg)
+            continue
+
+        if arg in cli.caps:
+            dump_NAK(cli)
+            return
+
+        cap_add.append(arg)
+
+    # we accepted the changeset, so apply it
+    for cap in cap_add:
+        cli.caps[cap] = caplist[cap]
+
+    for cap in cap_del:
+        cli.caps.pop(cap)
+
+    cli.dump_numeric('CAP', ['ACK', args])
+
 cap_cmds = {
     'CLEAR': m_CAP_CLEAR,
     'LS': m_CAP_LS,
     'LIST': m_CAP_LIST,
-    'END': m_CAP_END
+    'END': m_CAP_END,
+    'REQ': m_CAP_REQ,
 }
 cap_cmds = CaseInsensitiveDict(**cap_cmds)
 
