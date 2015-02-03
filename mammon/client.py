@@ -23,7 +23,7 @@ import copy
 from ircreactor.envelope import RFC1459Message
 from .utility import CaseInsensitiveDict, uniq
 from .property import user_property_items, user_mode_items
-from .server import eventmgr_rfc1459, get_context
+from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from . import __version__
 
 REGISTRATION_LOCK_NICK = 0x1

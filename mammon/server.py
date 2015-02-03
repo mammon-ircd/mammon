@@ -15,7 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from .events import EventManager, eventmgr_rfc1459
+from .events import EventManager, eventmgr_rfc1459, eventmgr_core
 
 running_context = None
 
