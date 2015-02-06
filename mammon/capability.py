@@ -175,7 +175,7 @@ cap_cmds = {
 }
 cap_cmds = CaseInsensitiveDict(**cap_cmds)
 
-@eventmgr_rfc1459.message('CAP', min_params=1)
+@eventmgr_rfc1459.message('CAP', min_params=1, allow_unregistered=True)
 def m_CAP(cli, ev_msg):
     subcmd = ev_msg['params'][0]
 
