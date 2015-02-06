@@ -128,7 +128,7 @@ def m_JOIN(cli, ev_msg):
 
     for chan in chanlist:
         if not validate_chan(chan):
-            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+            cli.dump_numeric('479', [chan, 'Illegal channel name'])
             return
 
         ch = cli.ctx.chmgr.get(chan, create=True)
@@ -148,13 +148,13 @@ def m_PART(cli, ev_msg):
     chanlist = ev_msg['params'][0].split(',')
 
     for chan in chanlist:
-        if not validate_chan(ev_msg['params'][0]):
+        if not validate_chan(chan):
             cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
             return
 
-        ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+        ch = cli.ctx.chmgr.get(chan, create=False)
         if not ch:
-            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            cli.dump_numeric('403', [chan, 'No such channel'])
             return
 
         if not ch.has_member(cli):
@@ -169,13 +169,13 @@ def m_NAMES(cli, ev_msg):
     chanlist = ev_msg['params'][0].split(',')
 
     for chan in chanlist:
-        if not validate_chan(ev_msg['params'][0]):
-            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+        if not validate_chan(chan):
+            cli.dump_numeric('479', [chan, 'Illegal channel name'])
             return
 
         ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
         if not ch:
-            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            cli.dump_numeric('403', [chan, 'No such channel'])
             return
 
         names_f = lambda x: True
@@ -191,13 +191,13 @@ def m_TOPIC(cli, ev_msg):
     chanlist = ev_msg['params'][0].split(',')
 
     for chan in chanlist:
-        if not validate_chan(ev_msg['params'][0]):
-            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+        if not validate_chan(chan):
+            cli.dump_numeric('479', [chan, 'Illegal channel name'])
             return
 
-        ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+        ch = cli.ctx.chmgr.get(chan, create=False)
         if not ch:
-            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            cli.dump_numeric('403', [chan, 'No such channel'])
             continue
 
         if not ch.has_member(cli):
