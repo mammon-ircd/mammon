@@ -73,14 +73,16 @@ class RFC1459EventManager(EventManager):
         cli = ev_msg['client']
         cli.dump_numeric('421', [ev_msg['verb'], 'Unknown command'])
 
-    def message(self, verb, min_params=0, update_idle=False, priority=10):
+    def message(self, verb, min_params=0, update_idle=False, priority=10, allow_unregistered=False):
         def parent_fn(func):
             @wraps(func)
             def child_fn(ev_msg):
                 cli = ev_msg['client']
+                if not allow_unregistered and not cli.registered:
+                    cli.dump_numeric('451', ['You have not registered'])
+                    return
                 if len(ev_msg['params']) < min_params:
-                    msg = RFC1459Message.from_data('461', source=cli.ctx.conf.name, params=[cli.nickname, ev_msg['verb'], 'Not enough parameters'])
-                    cli.dump_message(msg)
+                    cli.dump_numeric('461', [ev_msg['verb'], 'Not enough parameters'])
                     return
                 if update_idle:
                     cli.update_idle()
@@ -94,12 +96,12 @@ eventmgr_rfc1459 = RFC1459EventManager()
 
 # - - - BUILTIN EVENTS - - -
 
-@eventmgr_rfc1459.message('QUIT')
+@eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):
     reason = ev_msg['params'][0] if ev_msg['params'] else str()
     cli.exit('Quit: ' + reason)
 
-@eventmgr_rfc1459.message('NICK', min_params=1)
+@eventmgr_rfc1459.message('NICK', min_params=1, allow_unregistered=True)
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
     if not validate_nick(new_nickname):
@@ -117,7 +119,7 @@ def m_NICK(cli, ev_msg):
     cli.nickname = new_nickname
     cli.release_registration_lock(REGISTRATION_LOCK_NICK)
 
-@eventmgr_rfc1459.message('USER', min_params=4)
+@eventmgr_rfc1459.message('USER', min_params=4, allow_unregistered=True)
 def m_USER(cli, ev_msg):
     new_username = ev_msg['params'][0]
     new_realname = ev_msg['params'][3]
@@ -125,13 +127,13 @@ def m_USER(cli, ev_msg):
     cli.realname = new_realname
     cli.release_registration_lock(REGISTRATION_LOCK_USER)
 
-@eventmgr_rfc1459.message('PING')
+@eventmgr_rfc1459.message('PING', allow_unregistered=True)
 def m_PING(cli, ev_msg):
     reply = ev_msg['params'][0] if ev_msg['params'] else cli.ctx.conf.name
     msg = RFC1459Message.from_data('PONG', source=cli.ctx.conf.name, params=[reply])
     cli.dump_message(msg)
 
-@eventmgr_rfc1459.message('PONG', min_params=1)
+@eventmgr_rfc1459.message('PONG', min_params=1, allow_unregistered=True)
 def m_PONG(cli, ev_msg):
     if cli.ping_cookie and int(ev_msg['params'][0]) != cli.ping_cookie:
         return
