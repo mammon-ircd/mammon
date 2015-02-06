@@ -149,11 +149,15 @@ class ClientProtocol(asyncio.Protocol):
         self.eventmgr.dispatch(*m.to_event())
 
     def dump_message(self, m):
-        "Dumps an RFC1459 format message to the socket."
-        m.client = self
-        eventmgr_core.dispatch('outbound message postprocess', m)
+        """Dumps an RFC1459 format message to the socket.
+        Side effect: we actually operate on a copy of the message, because the message may have different optional
+        mutations depending on capabilities and broadcast target."""
+        out_m = copy.deepcopy(m)
 
-        self.transport.write(bytes(m.to_message() + '\r\n', 'UTF-8'))
+        out_m.client = self
+        eventmgr_core.dispatch('outbound message postprocess', out_m)
+
+        self.transport.write(bytes(out_m.to_message() + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
         """Dump a numeric to a connected client.
