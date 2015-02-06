@@ -91,13 +91,14 @@ def m_CAP_CLEAR(cli, ev_msg):
 def m_CAP_END(cli, ev_msg):
     cli.release_registration_lock(REGISTRATION_LOCK_CAP)
 
+# XXX - we add a trailing space for mIRC.  remove it once mIRC fixes their client.
 def m_CAP_REQ(cli, ev_msg):
     cap_add = []
     cap_del = []
     args = ev_msg['params'][1]
 
     def send_NAK(cli):
-        cli.dump_numeric('CAP', ['NAK', args])
+        cli.dump_numeric('CAP', ['NAK', args + ' '])
 
     for arg in args.split():
         negate = arg[0] == '-'
@@ -129,7 +130,7 @@ def m_CAP_REQ(cli, ev_msg):
     for cap in cap_del:
         cli.caps.pop(cap)
 
-    cli.dump_numeric('CAP', ['ACK', args])
+    cli.dump_numeric('CAP', ['ACK', args + ' '])
 
 # XXX: implement CAP ACK for real if it becomes necessary (nothing uses it)
 def m_CAP_ACK(cli, ev_msg):
@@ -138,7 +139,7 @@ def m_CAP_ACK(cli, ev_msg):
     args = ev_msg['params'][1]
 
     def send_NAK(cli):
-        cli.dump_numeric('CAP', ['NAK', args])
+        cli.dump_numeric('CAP', ['NAK', args + ' '])
 
     # sanity check the ACK, send NAK if it makes no sense
     for arg in args.split():
@@ -163,7 +164,7 @@ def m_CAP_ACK(cli, ev_msg):
             return
 
     # XXX: make the CAP change atomic someday (code would go here)
-    cli.dump_numeric('CAP', ['ACK', args])
+    cli.dump_numeric('CAP', ['ACK', args + ' '])
 
 cap_cmds = {
     'CLEAR': m_CAP_CLEAR,
