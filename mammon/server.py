@@ -42,6 +42,7 @@ class ServerContext(object):
     listeners = []
     config_name = 'mammond.yml'
     nofork = False
+    current_ts = None
 
     def __init__(self):
         self.logger = logging.getLogger('')
@@ -64,6 +65,9 @@ class ServerContext(object):
         self.logger.debug('init finished...')
 
         self.startstamp = time.strftime('%a %b %d %Y at %H:%M:%S %Z')
+
+    def update_ts(self):
+        self.current_ts = time.time()
 
     def daemonize(self):
         self.pid = os.fork()
@@ -134,9 +138,14 @@ Options:
                 fh.setLevel(logging.DEBUG)
                 self.logger.addHandler(fh)
 
+    def update_ts_callback(self):
+        self.update_ts()
+        self.eventloop.call_later(1, self.update_ts_callback)
+
     def run(self):
         global running_context
         running_context = self
 
+        self.update_ts_callback()
         self.eventloop.run_forever()
         exit(0)

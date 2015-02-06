@@ -76,11 +76,11 @@ class ClientProtocol(asyncio.Protocol):
         asyncio.async(self.do_rdns_check())
 
     def update_idle(self):
-        self.last_event_ts = self.ctx.eventloop.time()
+        self.last_event_ts = self.ctx.current_ts
 
     @property
     def idle_time(self):
-        return int(self.ctx.eventloop.time() - self.last_event_ts)
+        return int(self.ctx.current_ts - self.last_event_ts)
 
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.
@@ -287,7 +287,7 @@ class ClientProtocol(asyncio.Protocol):
         self.registered = True
         self.ctx.clients[self.nickname] = self
 
-        self.registration_ts = self.ctx.eventloop.time()
+        self.registration_ts = self.ctx.current_ts
         self.update_idle()
 
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])

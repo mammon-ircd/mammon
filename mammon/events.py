@@ -137,7 +137,7 @@ def m_PING(cli, ev_msg):
 def m_PONG(cli, ev_msg):
     if cli.ping_cookie and int(ev_msg['params'][0]) != cli.ping_cookie:
         return
-    cli.last_pong = cli.ctx.eventloop.time()
+    cli.last_pong = cli.ctx.current_ts
 
 @eventmgr_rfc1459.message('INFO')
 def m_INFO(cli, ev_msg):

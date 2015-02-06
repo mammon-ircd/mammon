@@ -217,7 +217,7 @@ def m_TOPIC(cli, ev_msg):
         # handle setting
         ch.topic = ev_msg['params'][1]
         ch.topic_setter = cli.hostmask
-        ch.topic_ts = cli.ctx.eventloop.time()
+        ch.topic_ts = cli.ctx.current_ts
 
         # distribute new topic to peers
         ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))

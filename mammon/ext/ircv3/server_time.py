@@ -25,4 +25,4 @@ cap_server_time = Capability('server-time')
 @eventmgr_core.handler('outbound message postprocess', priority=1)
 def m_server_time(m):
     if 'server-time' in m.client.caps:
-        m.tags['time'] = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(m.client.ctx.eventloop.time()))
+        m.tags['time'] = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(m.client.ctx.current_ts))
