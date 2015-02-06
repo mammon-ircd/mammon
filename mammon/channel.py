@@ -124,91 +124,103 @@ from .events import eventmgr_rfc1459
 
 @eventmgr_rfc1459.message('JOIN', min_params=1, update_idle=True)
 def m_JOIN(cli, ev_msg):
-    if not validate_chan(ev_msg['params'][0]):
-        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
-        return
+    chanlist = ev_msg['params'][0].split(',')
 
-    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=True)
-    if not ch.authorize(cli, ev_msg):
-        return
+    for chan in chanlist:
+        if not validate_chan(chan):
+            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+            return
 
-    ch.join(cli)
-    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
+        ch = cli.ctx.chmgr.get(chan, create=True)
+        if not ch.authorize(cli, ev_msg):
+            continue
 
-    if ch.topic:
-        cli.handle_side_effect('TOPIC', params=[ch.name])
+        ch.join(cli)
+        ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
 
-    cli.handle_side_effect('NAMES', params=[ch.name])
+        if ch.topic:
+            cli.handle_side_effect('TOPIC', params=[ch.name])
+
+        cli.handle_side_effect('NAMES', params=[ch.name])
 
 @eventmgr_rfc1459.message('PART', min_params=1, update_idle=True)
 def m_PART(cli, ev_msg):
-    if not validate_chan(ev_msg['params'][0]):
-        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
-        return
+    chanlist = ev_msg['params'][0].split(',')
 
-    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
-    if not ch:
-        cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
-        return
+    for chan in chanlist:
+        if not validate_chan(ev_msg['params'][0]):
+            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+            return
 
-    if not ch.has_member(cli):
-        cli.dump_numeric('442', [ch.name, "You're not on that channel"])
-        return
+        ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+        if not ch:
+            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            return
 
-    ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=ev_msg['params']))
-    ch.part(cli)
+        if not ch.has_member(cli):
+            cli.dump_numeric('442', [ch.name, "You're not on that channel"])
+            return
+
+        ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=ev_msg['params']))
+        ch.part(cli)
 
 @eventmgr_rfc1459.message('NAMES', min_params=1)
 def m_NAMES(cli, ev_msg):
-    if not validate_chan(ev_msg['params'][0]):
-        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
-        return
+    chanlist = ev_msg['params'][0].split(',')
 
-    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
-    if not ch:
-        cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
-        return
+    for chan in chanlist:
+        if not validate_chan(ev_msg['params'][0]):
+            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
+            return
 
-    names_f = lambda x: True
-    if not ch.has_member(cli):
-        names_f = lambda x: 'user:invisible' not in x.client.props
+        ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+        if not ch:
+            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            return
 
-    # XXX - this may need to be split up if we start enforcing an outbound packet size
-    cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
-    cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])
+        names_f = lambda x: True
+        if not ch.has_member(cli):
+            names_f = lambda x: 'user:invisible' not in x.client.props
+
+        # XXX - this may need to be split up if we start enforcing an outbound packet size
+        cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
+        cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])
 
 @eventmgr_rfc1459.message('TOPIC', min_params=1, update_idle=True)
 def m_TOPIC(cli, ev_msg):
-    if not validate_chan(ev_msg['params'][0]):
-        cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
-        return
+    chanlist = ev_msg['params'][0].split(',')
 
-    ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
-    if not ch:
-        cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
-        return
-
-    if not ch.has_member(cli):
-        cli.dump_numeric('442', [ch.name, "You're not on that channel"])
-        return
-
-    # handle inquiry
-    if len(ev_msg['params']) == 1:
-        if ch.topic:
-            cli.dump_numeric('332', [ch.name, ch.topic])
-            cli.dump_numeric('333', [ch.name, ch.topic_setter, ch.topic_ts])
+    for chan in chanlist:
+        if not validate_chan(ev_msg['params'][0]):
+            cli.dump_numeric('479', [ev_msg['params'][0], 'Illegal channel name'])
             return
 
-        cli.dump_numeric('331', [ch.name, 'No topic is set'])
-        return
+        ch = cli.ctx.chmgr.get(ev_msg['params'][0], create=False)
+        if not ch:
+            cli.dump_numeric('403', [ev_msg['params'][0], 'No such channel'])
+            continue
 
-    # handle setting
-    ch.topic = ev_msg['params'][1]
-    ch.topic_setter = cli.hostmask
-    ch.topic_ts = cli.ctx.eventloop.time()
+        if not ch.has_member(cli):
+            cli.dump_numeric('442', [ch.name, "You're not on that channel"])
+            continue
 
-    # distribute new topic to peers
-    ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))
+        # handle inquiry
+        if len(ev_msg['params']) == 1:
+            if ch.topic:
+                cli.dump_numeric('332', [ch.name, ch.topic])
+                cli.dump_numeric('333', [ch.name, ch.topic_setter, ch.topic_ts])
+                continue
+
+            cli.dump_numeric('331', [ch.name, 'No topic is set'])
+            continue
+
+        # handle setting
+        ch.topic = ev_msg['params'][1]
+        ch.topic_setter = cli.hostmask
+        ch.topic_ts = cli.ctx.eventloop.time()
+
+        # distribute new topic to peers
+        ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))
 
 # XXX - handle ELIST
 @eventmgr_rfc1459.message('LIST')
