@@ -19,7 +19,7 @@ There are many things where help would be welcome.  Some of the goals are below.
 
  * implement lots of missing things (IRCv3.1/3.2-draft compliance)
  * actually implement server linking
- * implement services-less IAL/SASL (this depends on the IRCv3.2/3.3 proposal I submitted)
+ * implement services-less IAL/SASL (this depends on the [IRCv3.2/3.3 proposal I submitted](https://github.com/ircv3/ircv3-specifications/pull/105))
 
 ## install / running
 
