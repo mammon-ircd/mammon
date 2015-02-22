@@ -130,8 +130,9 @@ def m_JOIN(cli, ev_msg):
         if not validate_chan(chan):
             cli.dump_numeric('479', [chan, 'Illegal channel name'])
             return
-
         ch = cli.ctx.chmgr.get(chan, create=True)
+        if ch.has_member(cli):
+            continue
         if not ch.authorize(cli, ev_msg):
             continue
 
