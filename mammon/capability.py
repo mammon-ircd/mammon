@@ -15,8 +15,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-REGISTRATION_LOCK_CAP = 0x8
-
 from mammon.utility import CaseInsensitiveDict
 from mammon.events import eventmgr_rfc1459
 from ircreactor.envelope import RFC1459Message
@@ -89,7 +87,7 @@ def m_CAP_CLEAR(cli, ev_msg):
         cli.dump_numeric('CAP', ['ACK', ' '.join(changelist)])
 
 def m_CAP_END(cli, ev_msg):
-    cli.release_registration_lock(REGISTRATION_LOCK_CAP)
+    cli.release_registration_lock('CAP')
 
 # XXX - we add a trailing space for mIRC.  remove it once mIRC fixes their client.
 def m_CAP_REQ(cli, ev_msg):
@@ -185,6 +183,6 @@ def m_CAP(cli, ev_msg):
         return
 
     if subcmd != 'END':
-        cli.push_registration_lock(REGISTRATION_LOCK_CAP)
+        cli.push_registration_lock('CAP')
 
     cap_cmds[subcmd](cli, ev_msg)

@@ -15,10 +15,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# XXX
-REGISTRATION_LOCK_NICK = 0x1
-REGISTRATION_LOCK_USER = 0x2
-
 import logging
 from functools import wraps
 
@@ -192,7 +188,7 @@ def m_NICK(cli, ev_msg):
         cli.ctx.clients[new_nickname] = cli
         cli.sendto_common_peers(msg)
     cli.nickname = new_nickname
-    cli.release_registration_lock(REGISTRATION_LOCK_NICK)
+    cli.release_registration_lock('NICK')
 
 @eventmgr_rfc1459.message('USER', min_params=4, allow_unregistered=True)
 def m_USER(cli, ev_msg):
@@ -200,7 +196,7 @@ def m_USER(cli, ev_msg):
     new_realname = ev_msg['params'][3]
     cli.username = new_username
     cli.realname = new_realname
-    cli.release_registration_lock(REGISTRATION_LOCK_USER)
+    cli.release_registration_lock('USER')
 
 @eventmgr_rfc1459.message('PING', allow_unregistered=True)
 def m_PING(cli, ev_msg):

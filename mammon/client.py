@@ -27,10 +27,6 @@ from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from . import __version__
 
-REGISTRATION_LOCK_NICK = 0x1
-REGISTRATION_LOCK_USER = 0x2
-REGISTRATION_LOCK_DNS  = 0x4
-
 class ClientHistoryEntry(object):
     def __init__(self, cli):
         self.nickname = cli.nickname
@@ -70,8 +66,7 @@ class ClientProtocol(asyncio.Protocol):
 
         self.connected = True
         self.registered = False
-        self.registration_lock = 0
-        self.push_registration_lock(REGISTRATION_LOCK_NICK | REGISTRATION_LOCK_USER | REGISTRATION_LOCK_DNS)
+        self.registration_lock = {'NICK', 'USER', 'DNS'}
 
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
@@ -136,7 +131,7 @@ class ClientProtocol(asyncio.Protocol):
         rdns = yield from self.ctx.eventloop.getnameinfo(self.peername)
         if rdns[0] == self.realaddr:
             self.dump_notice('Could not find your hostname...')
-            self.release_registration_lock(REGISTRATION_LOCK_DNS)
+            self.release_registration_lock('DNS')
             return
 
         try:
@@ -145,13 +140,13 @@ class ClientProtocol(asyncio.Protocol):
                 if fdns_e[4][0] == self.realaddr:
                     self.dump_notice('Found your hostname: ' + rdns[0])
                     self.hostname = rdns[0]
-                    self.release_registration_lock(REGISTRATION_LOCK_DNS)
+                    self.release_registration_lock('DNS')
                     return
         except:
             pass
 
         self.dump_notice('Could not find your hostname...')
-        self.release_registration_lock(REGISTRATION_LOCK_DNS)
+        self.release_registration_lock('DNS')
 
     def data_received(self, data):
         [self.message_received(m) for m in data.splitlines()]
@@ -249,12 +244,12 @@ class ClientProtocol(asyncio.Protocol):
     def push_registration_lock(self, lock):
         if self.registered:
             return
-        self.registration_lock |= lock
+        self.registration_lock.add(lock)
 
     def release_registration_lock(self, lock):
         if self.registered:
             return
-        self.registration_lock &= ~lock
+        self.registration_lock.discard(lock)
         if not self.registration_lock:
             self.register()
 
