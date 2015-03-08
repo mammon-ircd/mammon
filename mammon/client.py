@@ -66,7 +66,8 @@ class ClientProtocol(asyncio.Protocol):
 
         self.connected = True
         self.registered = False
-        self.registration_lock = {'NICK', 'USER', 'DNS'}
+        self.registration_lock = set()
+        self.push_registration_lock('NICK', 'USER', 'DNS')
 
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
@@ -241,15 +242,15 @@ class ClientProtocol(asyncio.Protocol):
         self.ctx.clients.pop(self.nickname)
         ClientHistoryEntry(self).register()
 
-    def push_registration_lock(self, lock):
+    def push_registration_lock(self, *locks):
         if self.registered:
             return
-        self.registration_lock.add(lock)
+        self.registration_lock |= set(locks)
 
-    def release_registration_lock(self, lock):
+    def release_registration_lock(self, *locks):
         if self.registered:
             return
-        self.registration_lock.discard(lock)
+        self.registration_lock -= set(locks)
         if not self.registration_lock:
             self.register()
 
