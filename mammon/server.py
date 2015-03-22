@@ -103,7 +103,7 @@ Options:
             self.usage()
         if '--config' in sys.argv:
             try:
-                self.config = sys.argv[sys.argv.index('--config') + 1]
+                self.config_name = sys.argv[sys.argv.index('--config') + 1]
             except IndexError:
                 print('mammon: error: no parameter provided for --config')
                 exit(1)
