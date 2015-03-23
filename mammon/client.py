@@ -43,7 +43,7 @@ class ClientHistoryEntry(object):
         self.ctx.client_history[self.nickname] = self
 
 # XXX - handle ping timeout
-# XXX - exit() could eventually be handled using self.eventmgr.dispatch()
+# XXX - quit() could eventually be handled using self.eventmgr.dispatch()
 class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.ctx = get_context()
@@ -92,17 +92,17 @@ class ClientProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.
-        Calling exit() can cause this function to be called recursively, so we use IClient.connected
+        Calling quit() can cause this function to be called recursively, so we use IClient.connected
         as a property to determine whether or not the client is still connected.  If we have already handled
-        this connection loss (most likely by inducing it in exit()), then IClient.connected will be
+        this connection loss (most likely by inducing it in quit()), then IClient.connected will be
         False.
-        Side effects: IProtocol.exit() is called by this function."""
+        Side effects: IProtocol.quit() is called by this function."""
         if not self.connected:
             return
         if not exc:
-            self.exit('Connection closed')
+            self.quit('Connection closed')
             return
-        self.exit('Connection error: ' + repr(exc))
+        self.quit('Connection error: ' + repr(exc))
 
     def do_rdns_check(self):
         """Handle looking up the client's reverse DNS and validating it as a coroutine."""
@@ -137,7 +137,7 @@ class ClientProtocol(asyncio.Protocol):
 
         # logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
         if len(self.recvq) > self.ctx.conf.recvq_len:
-            self.exit('Excess flood')
+            self.quit('Excess flood')
             return
 
         self.recvq.append(m)
@@ -200,9 +200,17 @@ class ClientProtocol(asyncio.Protocol):
             st += '*'
         return st
 
-    def exit(self, message):
+    def kill(self, source, reason):
+        m = RFC1459Message.from_data('KILL', source=source.hostmask, params=[self.nickname, reason])
+        self.sendto_common_peers(m)
+        self.exit()
+
+    def quit(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
         self.sendto_common_peers(m)
+        self.exit()
+
+    def exit(self):
         self.connected = False
         self.transport.close()
         if not self.registered:

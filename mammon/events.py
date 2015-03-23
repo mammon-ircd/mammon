@@ -97,6 +97,28 @@ eventmgr_rfc1459 = RFC1459EventManager()
 
 # - - - BUILTIN EVENTS - - -
 
+@eventmgr_rfc1459.message('KILL', min_params=2)
+def m_KILL(cli, ev_msg):
+    target, reason = ev_msg['params'][:2]
+
+    # XXX - when we have multiple servers, we will need to check local kill vs remote kill
+    if 'oper:kill' not in cli.role.capabilities:
+        cli.dump_numeric('481', ['Permission Denied'])
+        return
+
+    # XXX - check other servers too when we have multiple servers
+    server_hostnames = [cli.ctx.conf.server['name']]
+    if target in server_hostnames:
+        cli.dump_numeric('483', [target, "You can't kill a server!"])
+        return
+
+    cli_tg = cli.ctx.clients.get(target, None)
+    if not cli_tg:
+        cli.dump_numeric('401', [target, 'No such nick/channel'])
+        return
+
+    cli_tg.kill(cli, reason)
+
 @eventmgr_rfc1459.message('OPER', min_params=2)
 def m_OPER(cli, ev_msg):
     name, password = ev_msg['params'][:2]
@@ -152,7 +174,7 @@ def m_OPER(cli, ev_msg):
 @eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):
     reason = ev_msg['params'][0] if ev_msg['params'] else str()
-    cli.exit('Quit: ' + reason)
+    cli.quit('Quit: ' + reason)
 
 @eventmgr_rfc1459.message('NICK', min_params=1, allow_unregistered=True)
 def m_NICK(cli, ev_msg):
