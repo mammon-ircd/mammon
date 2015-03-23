@@ -39,6 +39,7 @@ from getpass import getpass
 
 class ServerContext(object):
     options = []
+    roles = []
     clients = CaseInsensitiveDict()
     channels = CaseInsensitiveDict()
     listeners = []
