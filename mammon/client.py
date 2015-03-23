@@ -196,7 +196,7 @@ class ClientProtocol(asyncio.Protocol):
             st += 'G'
         else:
             st += 'H'
-        if self.operator:
+        if self.props.get('special:oper', False):
             st += '*'
         return st
 

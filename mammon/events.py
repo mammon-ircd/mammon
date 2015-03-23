@@ -300,7 +300,7 @@ def m_WHO(cli, ev_msg):
         oper_query = 'o' in ev_msg['params'][1]
 
     def do_single_who(cli, tparam, target, status=None):
-        if oper_query and not target.operator:
+        if oper_query and not target.props.get('special:oper', False):
             return
         if not status:
             status = target.status
