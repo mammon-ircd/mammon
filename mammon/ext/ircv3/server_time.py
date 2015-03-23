@@ -24,7 +24,5 @@ cap_server_time = Capability('server-time')
 
 @eventmgr_core.handler('outbound message postprocess', priority=1)
 def m_server_time(m):
-    # XXX - we suppress the effect of the server-time cap on the CAP ACK message because mIRC 7.34 to 7.38
-    # do not handle it correctly.  remove this workaround once mIRC releases a fix.
-    if 'server-time' in m.client.caps and m.verb != 'CAP':
+    if 'server-time' in m.client.caps:
         m.tags['time'] = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(m.client.ctx.current_ts))
