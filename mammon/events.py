@@ -115,37 +115,39 @@ def m_OPER(cli, ev_msg):
             cli.dump_numeric('491', ['No O-lines for your host'])
             return
 
-    try:
-        data = cli.ctx.conf.opers.get(name, None)
-        if data is not None:
+    data = cli.ctx.conf.opers.get(name, None)
+    if data is not None:
+        pass_is_valid = False
+
+        hash = data.get('hash', None)
+        if hash:
+            if hash not in cli.ctx.hashing.valid_schemes:
+                print('mammon: error: hashing algorithm for oper password is not valid')
+            elif cli.ctx.hashing.enabled:
+                pass_is_valid = cli.ctx.hashing.verify(password, data.get('password'))
+            else:
+                print('mammon: error: cannot verify oper password, hashing is not enabled')
+        else:
+            pass_is_valid = password == data.get('password')
+
+        del password
+
+        # check this specific oper's hostmask
+        hostmask = data.get('hostmask')
+        if not ircmatch.match(0, hostmask, cli.hostmask):
+            # we do this so we don't leak info on oper blocks
             pass_is_valid = False
 
-            hash = data.get('hash', None)
-            if hash:
-                if hash not in cli.ctx.hashing.valid_schemes:
-                    print('mammon: error: hashing algorithm for oper password is not valid')
-                elif cli.ctx.hashing.enabled:
-                    pass_is_valid = cli.ctx.hashing.verify(password, data.get('password'))
-                else:
-                    print('mammon: error: cannot verify oper password, hashing is not enabled')
-            else:
-                pass_is_valid = password == data.get('password')
-
-            del password
-
-            # check this specific oper's hostmask
-            hostmask = data.get('hostmask')
-            if not ircmatch.match(0, hostmask, cli.hostmask):
-                # we do this so we don't leak info on oper blocks
-                pass_is_valid = False
-
-        if pass_is_valid:
-            cli.props['special:oper'] = True
-            cli.dump_numeric('381', ['You are now an IRC operator'])
+    if pass_is_valid:
+        if data.get('role') in cli.ctx.roles:
+            cli.role = data.get('role')
         else:
-            cli.dump_numeric('464', ['Password incorrect'])
-    except Exception as ex:
-        print(ex)
+            print('mammon: error: role does not exist for oper', name)
+
+        cli.props['special:oper'] = True
+        cli.dump_numeric('381', ['You are now an IRC operator'])
+    else:
+        cli.dump_numeric('464', ['Password incorrect'])
 
 @eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):
@@ -332,8 +334,8 @@ def m_WHOIS(cli, ev_msg):
     if channels:
         cli.dump_numeric('319', [cli_tg.nickname, ' '.join([x.channel_name for x in channels]) + ' '])
     cli.dump_numeric('312', [cli_tg.nickname, cli.ctx.conf.name, cli.ctx.conf.description])
-    if cli_tg.operator:
-        cli.dump_numeric('313', [cli_tg.nickname, 'is an IRC operator.'])
+    if cli_tg.role:
+        cli.dump_numeric('313', [cli_tg.nickname, cli_tg.role.whois_format.format(role=cli_tg.role.whois)])
     if cli_tg.account:
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
     cli.dump_numeric('317', [cli_tg.nickname, cli_tg.idle_time, cli_tg.registration_ts, 'seconds idle, signon time'])

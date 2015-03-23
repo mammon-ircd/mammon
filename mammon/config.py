@@ -19,6 +19,7 @@ import yaml
 import asyncio
 import logging
 from .client import ClientProtocol
+from .roles import Role
 
 class ConfigHandler(object):
     config_st = {}
@@ -46,3 +47,8 @@ class ConfigHandler(object):
             self.ctx.logger.info('opening listener at {0}:{1} [{2}]'.format(l['host'], l['port'], proto))
             lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'])
             self.ctx.listeners.append(lstn)
+
+        roles = {}
+        for k, v in self.roles.items():
+            roles[k] = Role(self.ctx, k, **v)
+        self.ctx.roles = roles

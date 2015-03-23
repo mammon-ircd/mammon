@@ -62,7 +62,7 @@ class ClientProtocol(asyncio.Protocol):
         self.servername = self.ctx.conf.name
 
         self.away_message = str()
-        self.operator = None              # XXX - update when operator objects are implemented
+        self._role_name = None
         self.account = None               # XXX - update if needed when account objects are implemented
 
         self.connected = True
@@ -77,6 +77,14 @@ class ClientProtocol(asyncio.Protocol):
 
     def update_idle(self):
         self.last_event_ts = self.ctx.current_ts
+
+    @property
+    def role(self):
+        return self.ctx.roles.get(self._role_name)
+
+    @role.setter
+    def role(self, value):
+        self._role_name = value
 
     @property
     def idle_time(self):
