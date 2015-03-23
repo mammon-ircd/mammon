@@ -30,6 +30,15 @@ logs:
      "level": "debug"
   }
 
+# The IRC Operators
+opers:
+  "nobody":
+    # password - what the oper uses to login
+    password: "nothing"
+
+    # host - if defined, where the oper must connect from
+    host: "127.0.0.1"
+
 # The extensions section is a list of extension modules to load.
 extensions:
 - mammon.ext.rfc1459.42

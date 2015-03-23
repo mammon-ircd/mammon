@@ -96,6 +96,26 @@ eventmgr_rfc1459 = RFC1459EventManager()
 
 # - - - BUILTIN EVENTS - - -
 
+@eventmgr_rfc1459.message('OPER', min_params=2)
+def m_OPER(cli, ev_msg):
+    name, password = ev_msg['params'][:2]
+
+    # make sure host is valid, if defined in config
+    valid_hosts = [data.get('host', None) for data in cli.ctx.conf.opers.values()]
+    if None not in valid_hosts:
+        if cli.hostname not in valid_hosts and cli.realaddr not in valid_hosts:
+            cli.dump_numeric('491', ['No O-lines for your host'])
+            return
+
+    data = cli.ctx.conf.opers.get(name, None)
+    if data is not None and password == data.get('password'):
+        del password
+        cli.props['special:oper'] = True
+        cli.dump_numeric('381', ['You are now an IRC operator'])
+        return
+
+    cli.dump_numeric('464', ['Password incorrect'])
+
 @eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):
     reason = ev_msg['params'][0] if ev_msg['params'] else str()
