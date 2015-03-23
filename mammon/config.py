@@ -21,6 +21,13 @@ import logging
 from .client import ClientProtocol
 from .roles import Role
 
+def load_extended_roles(ctx, k, roles, roles_extending):
+    for kk, vv in roles_extending.get(k, {}).items():
+        roles[kk] = Role(ctx, kk, roles=roles, **vv)
+        roles = load_extended_roles(ctx, kk, roles, roles_extending)
+
+    return roles
+
 class ConfigHandler(object):
     config_st = {}
     ctx = None
@@ -49,6 +56,21 @@ class ConfigHandler(object):
             self.ctx.listeners.append(lstn)
 
         roles = {}
+        roles_extending = {
+            None: {},
+        }
+
+        # get base list of which roles extend from which
         for k, v in self.roles.items():
-            roles[k] = Role(self.ctx, k, **v)
+            extends = v.get('extends', None)
+            if extends not in roles_extending:
+                roles_extending[extends] = {}
+            roles_extending[extends][k] = v
+
+        # load base roles, then roles that extend those
+        base_roles = roles_extending[None]
+        for k, v in base_roles.items():
+            roles[k] = Role(self.ctx, k, roles=roles, **v)
+            roles = load_extended_roles(self.ctx, k, roles, roles_extending)
+
         self.ctx.roles = roles

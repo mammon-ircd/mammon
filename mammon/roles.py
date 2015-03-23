@@ -19,7 +19,7 @@ default_whois_format = 'is a {role}.'
 default_vowel_whois_format = 'is an {role}.'
 
 class Role:
-    def __init__(self, ctx, name, extends=None, **kwargs):
+    def __init__(self, ctx, name, roles=None, extends=None, **kwargs):
         self.ctx = ctx
         self.name = name
 
@@ -43,8 +43,12 @@ class Role:
 
         self.whois_line = self.whois_format.format(role=self.whois)
 
-        if extends and extends in self.ctx.roles:
-            for capability in self.ctx.roles.get(extends).capabilities:
+        # extending roles
+        if roles is None:
+            roles = self.ctx.roles
+
+        if extends and extends in roles:
+            for capability in roles.get(extends).capabilities:
                 if capability not in self.capabilities:
                     self.capabilities.append(capability)
         elif extends:
