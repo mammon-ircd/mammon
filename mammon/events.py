@@ -24,6 +24,7 @@ from functools import wraps
 
 from ircreactor.events import EventManager as EventManagerBase
 from ircreactor.envelope import RFC1459Message
+import ircmatch
 
 from . import __credits__, __version__
 from .utility import validate_nick, validate_chan
@@ -100,10 +101,17 @@ eventmgr_rfc1459 = RFC1459EventManager()
 def m_OPER(cli, ev_msg):
     name, password = ev_msg['params'][:2]
 
-    # make sure host is valid, if defined in config
-    valid_hosts = [data.get('host', None) for data in cli.ctx.conf.opers.values()]
+    # make sure hostmask is valid, if defined in config
+    valid_hosts = [data.get('hostmask', None) for data in cli.ctx.conf.opers.values()]
     if None not in valid_hosts:
-        if cli.hostname not in valid_hosts and cli.realaddr not in valid_hosts:
+        have_a_valid_host = False
+
+        for hostmask in valid_hosts:
+            if ircmatch.match(0, hostmask, cli.hostmask):
+                have_a_valid_host = True
+                break
+
+        if not have_a_valid_host:
             cli.dump_numeric('491', ['No O-lines for your host'])
             return
 
@@ -124,6 +132,12 @@ def m_OPER(cli, ev_msg):
                 pass_is_valid = password == data.get('password')
 
             del password
+
+            # check this specific oper's hostmask
+            hostmask = data.get('hostmask')
+            if not ircmatch.match(0, hostmask, cli.hostmask):
+                # we do this so we don't leak info on oper blocks
+                pass_is_valid = False
 
         if pass_is_valid:
             cli.props['special:oper'] = True

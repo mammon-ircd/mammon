@@ -37,8 +37,8 @@ opers:
     # password - the plaintext oper password
     password: "nothing"
 
-    # host - if defined, the host the oper must connect from
-    host: "127.0.0.1"
+    # hostmask - if defined, the hostmask the oper must connect from
+    hostmask: "*@localhost"
 
   # name - the name of the operator
   "somebody":
@@ -49,8 +49,8 @@ opers:
     # hash - the hashing algorithm to use
     hash: "sha512_crypt"
 
-    # host - if defined, the host the oper must connect from
-    host: "127.0.0.1"
+    # hostmask - if defined, the hostmask the oper must connect from
+    hostmask: "somebody!*@localhost"
 
 # The extensions section is a list of extension modules to load.
 extensions:
