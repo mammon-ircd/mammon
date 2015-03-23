@@ -202,8 +202,8 @@ class ClientProtocol(asyncio.Protocol):
 
     def kill(self, source, reason):
         m = RFC1459Message.from_data('KILL', source=source.hostmask, params=[self.nickname, reason])
-        self.sendto_common_peers(m)
-        self.exit()
+        self.dump_message(m)
+        self.quit('Killed ({source} ({reason}))'.format(source=source.nickname, reason=reason))
 
     def quit(self, message):
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
