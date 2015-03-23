@@ -107,14 +107,31 @@ def m_OPER(cli, ev_msg):
             cli.dump_numeric('491', ['No O-lines for your host'])
             return
 
-    data = cli.ctx.conf.opers.get(name, None)
-    if data is not None and password == data.get('password'):
-        del password
-        cli.props['special:oper'] = True
-        cli.dump_numeric('381', ['You are now an IRC operator'])
-        return
+    try:
+        data = cli.ctx.conf.opers.get(name, None)
+        if data is not None:
+            pass_is_valid = False
 
-    cli.dump_numeric('464', ['Password incorrect'])
+            hash = data.get('hash', None)
+            if hash:
+                if hash not in cli.ctx.hashing.valid_schemes:
+                    print('mammon: error: hashing algorithm for oper password is not valid')
+                elif cli.ctx.hashing.enabled:
+                    pass_is_valid = cli.ctx.hashing.verify(password, data.get('password'))
+                else:
+                    print('mammon: error: cannot verify oper password, hashing is not enabled')
+            else:
+                pass_is_valid = password == data.get('password')
+
+            del password
+
+        if pass_is_valid:
+            cli.props['special:oper'] = True
+            cli.dump_numeric('381', ['You are now an IRC operator'])
+        else:
+            cli.dump_numeric('464', ['Password incorrect'])
+    except Exception as ex:
+        print(ex)
 
 @eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):

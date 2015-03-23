@@ -32,11 +32,23 @@ logs:
 
 # The IRC Operators
 opers:
+  # name - the name of the operator
   "nobody":
-    # password - what the oper uses to login
+    # password - the plaintext oper password
     password: "nothing"
 
-    # host - if defined, where the oper must connect from
+    # host - if defined, the host the oper must connect from
+    host: "127.0.0.1"
+
+  # name - the name of the operator
+  "somebody":
+    # password - the hashed oper password
+    password: "$6$rounds=100000$KkEHFBhWHV3BHCCS$YuOdlikJHdeIv2YpwvyLAtYCslDlsnUUnrfeKJiBh4SeVhkSU6pQqHWWDjr6lnalkkf1KLDD1wgSQH5AObILQ1"
+
+    # hash - the hashing algorithm to use
+    hash: "sha512_crypt"
+
+    # host - if defined, the host the oper must connect from
     host: "127.0.0.1"
 
 # The extensions section is a list of extension modules to load.
