@@ -30,7 +30,21 @@ logs:
      "level": "debug"
   }
 
-# The IRC Operators
+# Roles define the capabilities an oper may have, as well as role-specific
+# metadata.
+roles:
+  # name - the name of the privilege set
+  "admin":
+    # capabilities - a list of qualified capability names
+    capabilities:
+      - oper:kill
+      - oper:routing
+
+    # whois - metadata identifying the specific role
+    whois: "IRC Administrator"
+
+# Operator credentials allow a user to transition from a typical user role
+# to a privileged role.
 opers:
   # name - the name of the operator
   "nobody":
@@ -39,6 +53,9 @@ opers:
 
     # hostmask - if defined, the hostmask the oper must connect from
     hostmask: "*@localhost"
+
+    # role - the role that the credentials allow transition to
+    role: "admin"
 
   # name - the name of the operator
   "somebody":
@@ -51,6 +68,9 @@ opers:
 
     # hostmask - if defined, the hostmask the oper must connect from
     hostmask: "somebody!*@localhost"
+
+    # role - the role that the credentials allow transition to
+    role: "admin"
 
 # The extensions section is a list of extension modules to load.
 extensions:
