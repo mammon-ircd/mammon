@@ -35,6 +35,7 @@ import sys
 import time
 import os
 import importlib
+from getpass import getpass
 
 class ServerContext(object):
     options = []
@@ -96,12 +97,12 @@ class ServerContext(object):
 A useless ircd.
 
 Options:
-   --help                         - This screen.
-   --debug                        - Enable debug verbosity
-   --nofork                       - Do not fork into background
-   --config config                - A JSON configuration file to parse
-   --list-hashes                  - List the supported hashes for passwords
-   --mkpasswd <hash> <password>   - Return hashed password, to put into config files""".format(cmd))
+   --help              - This screen.
+   --debug             - Enable debug verbosity
+   --nofork            - Do not fork into background
+   --config config     - A JSON configuration file to parse
+   --list-hashes       - List the supported hashes for passwords
+   --mkpasswd          - Return hashed password, to put into config files""".format(cmd))
         exit(1)
 
     def list_hashes(self):
@@ -109,23 +110,27 @@ Options:
         exit(1)
 
     def mkpasswd(self):
-        try:
-            i = sys.argv.index('--mkpasswd')
-            scheme = sys.argv[i + 1]
-            text = sys.argv[i + 2]
-        except IndexError:
-            print('mammon: error: hash and/or password missing provided for --mkpasswd')
-            exit(1)
-
         if not self.hashing.enabled:
             print('mammon: error: hashing is not enabled, try:  pip3 install passlib')
             exit(1)
 
-        if scheme not in self.hashing.valid_schemes:
-            print('mammon: error: hash is not supported, valid hashes are:', ', '.join(self.hashing.valid_schemes))
-            exit(1)
+        print('Valid hashing algorithms:', ', '.join(self.hashing.valid_schemes))
 
-        hash = self.hashing.encrypt(text, scheme=scheme)
+        scheme = 'invalid'
+        prompt = 'Hashing algorithm [{default}]: '.format(default=self.hashing.default_scheme)
+        while scheme != '' and scheme not in self.hashing.valid_schemes:
+            scheme = input(prompt)
+        if scheme == '':
+            scheme = self.hashing.default_scheme
+
+        password = ''
+        prompt = 'Password: '
+        while password.strip() == '':
+            password = getpass(prompt)
+
+        print('')
+
+        hash = self.hashing.encrypt(password, scheme=scheme)
         print(hash)
 
         exit(1)

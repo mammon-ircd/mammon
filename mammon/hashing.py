@@ -16,6 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 class HashHandler:
+    default_scheme = 'sha512_crypt'
     valid_schemes = ('sha512_crypt', 'pbkdf2_sha512')
 
     def __init__(self):
