@@ -123,14 +123,14 @@ def m_CAP_REQ(cli, ev_msg):
 
         cap_add.append(arg)
 
+    cli.dump_numeric('CAP', ['ACK', ' '.join(cap_add) + ' -'.join(cap_del) + ' '])
+
     # we accepted the changeset, so apply it
     for cap in cap_add:
         cli.caps[cap] = caplist[cap]
 
     for cap in cap_del:
         cli.caps.pop(cap)
-
-    cli.dump_numeric('CAP', ['ACK', args + ' '])
 
 # XXX: implement CAP ACK for real if it becomes necessary (nothing uses it)
 def m_CAP_ACK(cli, ev_msg):
