@@ -43,6 +43,7 @@ opers:
   # name - the name of the operator
   "somebody":
     # password - the hashed oper password
+    # created by:  mammond --mkpasswd
     password: "$6$rounds=100000$KkEHFBhWHV3BHCCS$YuOdlikJHdeIv2YpwvyLAtYCslDlsnUUnrfeKJiBh4SeVhkSU6pQqHWWDjr6lnalkkf1KLDD1wgSQH5AObILQ1"
 
     # hash - the hashing algorithm to use
