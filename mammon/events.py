@@ -24,6 +24,7 @@ from functools import wraps
 
 from ircreactor.events import EventManager as EventManagerBase
 from ircreactor.envelope import RFC1459Message
+import ircmatch
 
 from . import __credits__, __version__
 from .utility import validate_nick, validate_chan
@@ -95,6 +96,56 @@ eventmgr_core = EventManager()
 eventmgr_rfc1459 = RFC1459EventManager()
 
 # - - - BUILTIN EVENTS - - -
+
+@eventmgr_rfc1459.message('OPER', min_params=2)
+def m_OPER(cli, ev_msg):
+    name, password = ev_msg['params'][:2]
+
+    # make sure hostmask is valid, if defined in config
+    valid_hosts = [data.get('hostmask', None) for data in cli.ctx.conf.opers.values()]
+    if None not in valid_hosts:
+        have_a_valid_host = False
+
+        for hostmask in valid_hosts:
+            if ircmatch.match(0, hostmask, cli.hostmask):
+                have_a_valid_host = True
+                break
+
+        if not have_a_valid_host:
+            cli.dump_numeric('491', ['No O-lines for your host'])
+            return
+
+    try:
+        data = cli.ctx.conf.opers.get(name, None)
+        if data is not None:
+            pass_is_valid = False
+
+            hash = data.get('hash', None)
+            if hash:
+                if hash not in cli.ctx.hashing.valid_schemes:
+                    print('mammon: error: hashing algorithm for oper password is not valid')
+                elif cli.ctx.hashing.enabled:
+                    pass_is_valid = cli.ctx.hashing.verify(password, data.get('password'))
+                else:
+                    print('mammon: error: cannot verify oper password, hashing is not enabled')
+            else:
+                pass_is_valid = password == data.get('password')
+
+            del password
+
+            # check this specific oper's hostmask
+            hostmask = data.get('hostmask')
+            if not ircmatch.match(0, hostmask, cli.hostmask):
+                # we do this so we don't leak info on oper blocks
+                pass_is_valid = False
+
+        if pass_is_valid:
+            cli.props['special:oper'] = True
+            cli.dump_numeric('381', ['You are now an IRC operator'])
+        else:
+            cli.dump_numeric('464', ['Password incorrect'])
+    except Exception as ex:
+        print(ex)
 
 @eventmgr_rfc1459.message('QUIT', allow_unregistered=True)
 def m_QUIT(cli, ev_msg):

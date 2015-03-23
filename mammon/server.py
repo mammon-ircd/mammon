@@ -24,6 +24,7 @@ def get_context():
     return running_context
 
 from .config import ConfigHandler
+from .hashing import HashHandler
 from .utility import CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
 from .capability import caplist
@@ -34,6 +35,7 @@ import sys
 import time
 import os
 import importlib
+from getpass import getpass
 
 class ServerContext(object):
     options = []
@@ -50,6 +52,9 @@ class ServerContext(object):
 
         self.chmgr = ChannelManager(self)
         self.client_history = ExpiringDict(max_len=1024, max_age_seconds=86400)
+
+        # must be done before handling command line
+        self.hashing = HashHandler()
 
         self.handle_command_line()
 
@@ -95,12 +100,48 @@ Options:
    --help              - This screen.
    --debug             - Enable debug verbosity
    --nofork            - Do not fork into background
-   --config config     - A JSON configuration file to parse""".format(cmd))
+   --config config     - A JSON configuration file to parse
+   --list-hashes       - List the supported hashes for passwords
+   --mkpasswd          - Return hashed password, to put into config files""".format(cmd))
+        exit(1)
+
+    def list_hashes(self):
+        print('Valid hashing algorithms:', ', '.join(self.hashing.valid_schemes))
+        exit(1)
+
+    def mkpasswd(self):
+        if not self.hashing.enabled:
+            print('mammon: error: hashing is not enabled, try:  pip3 install passlib')
+            exit(1)
+
+        print('Valid hashing algorithms:', ', '.join(self.hashing.valid_schemes))
+
+        scheme = 'invalid'
+        prompt = 'Hashing algorithm [{default}]: '.format(default=self.hashing.default_scheme)
+        while scheme != '' and scheme not in self.hashing.valid_schemes:
+            scheme = input(prompt)
+        if scheme == '':
+            scheme = self.hashing.default_scheme
+
+        password = ''
+        prompt = 'Password: '
+        while password.strip() == '':
+            password = getpass(prompt)
+
+        print('')
+
+        hash = self.hashing.encrypt(password, scheme=scheme)
+        print(hash)
+
         exit(1)
 
     def handle_command_line(self):
         if '--help' in sys.argv:
             self.usage()
+        if '--list-hashes' in sys.argv:
+            self.list_hashes()
+        if '--mkpasswd' in sys.argv:
+            self.mkpasswd()
         if '--config' in sys.argv:
             try:
                 self.config_name = sys.argv[sys.argv.index('--config') + 1]
