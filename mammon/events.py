@@ -335,7 +335,7 @@ def m_WHOIS(cli, ev_msg):
         cli.dump_numeric('319', [cli_tg.nickname, ' '.join([x.channel_name for x in channels]) + ' '])
     cli.dump_numeric('312', [cli_tg.nickname, cli.ctx.conf.name, cli.ctx.conf.description])
     if cli_tg.role:
-        cli.dump_numeric('313', [cli_tg.nickname, cli_tg.role.whois_format.format(role=cli_tg.role.whois)])
+        cli.dump_numeric('313', [cli_tg.nickname, cli_tg.role.whois_line])
     if cli_tg.account:
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
     cli.dump_numeric('317', [cli_tg.nickname, cli_tg.idle_time, cli_tg.registration_ts, 'seconds idle, signon time'])

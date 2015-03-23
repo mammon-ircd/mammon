@@ -41,6 +41,8 @@ class Role:
                 elif character.isalpha():
                     break
 
+        self.whois_line = self.whois_format.format(role=self.whois)
+
         if extends and extends in self.ctx.roles:
             for capability in self.ctx.roles.get(extends).capabilities:
                 if capability not in self.capabilities:
