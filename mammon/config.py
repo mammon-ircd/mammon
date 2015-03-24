@@ -55,6 +55,16 @@ class ConfigHandler(object):
             lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'])
             self.ctx.listeners.append(lstn)
 
+        if self.metadata.get('limit', None) is not None:
+            try:
+                self.metadata['limit'] = int(self.metadata['limit'])
+            except:
+                print('mammon: error: config key metadata.limit must be an integer or commented out')
+                print('mammon: error: setting metadata.limit to default 20')
+                self.metadata['limit'] = 20
+        if self.metadata.get('restricted_keys', []) is None:
+            self.metadata['restricted_keys'] = []
+
         roles = {}
         roles_extending = {
             None: {},

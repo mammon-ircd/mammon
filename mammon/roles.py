@@ -24,6 +24,7 @@ class Role:
         self.name = name
 
         # defaults
+        self.metakeys = []
         self.capabilities = []
         self.title = ''
         self.whois_format = None

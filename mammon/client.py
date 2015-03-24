@@ -59,6 +59,8 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
         self.caps = CaseInsensitiveDict()
+        self.user_set_metadata = []
+        self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
 
         self.away_message = str()
@@ -290,7 +292,8 @@ class ClientProtocol(asyncio.Protocol):
         [i.dump_message(message) for i in peerlist]
 
     def dump_isupport(self):
-        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True}
+        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True, 'METADATA': self.ctx.conf.metadata.get('limit', True)}
+
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
             if isinstance(v, bool):
