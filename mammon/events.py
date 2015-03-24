@@ -102,7 +102,7 @@ def m_KILL(cli, ev_msg):
     target, reason = ev_msg['params'][:2]
 
     # XXX - when we have multiple servers, we will need to check local kill vs remote kill
-    if 'oper:kill' not in cli.role.capabilities:
+    if 'oper:local_kill' not in cli.role.capabilities:
         cli.dump_numeric('481', ['Permission Denied'])
         return
 
