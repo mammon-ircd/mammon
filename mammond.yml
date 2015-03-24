@@ -16,9 +16,11 @@ server:
   motd:
   - "This is mammond's default motd.  You can change it in mammond.yml."
 
+
 # The listeners object is a list of listeners.
 listeners:
 - {"host": "0.0.0.0", "port": 6667, "ssl": false}
+
 
 # The logs section is a list of logs.
 logs:
@@ -30,18 +32,68 @@ logs:
      "level": "debug"
   }
 
+
 # Roles define the capabilities an oper may have, as well as role-specific
 # metadata.
+
+  # mammon capability names:
+  #   oper:local_kill    allows /KILLing local users
+  #   oper:global_kill   allows /KILLing local and remote users
+  #   oper:routing       allows remote SQUIT and CONNECT
+  #   oper:kline         allows KLINE and DLINE
+  #   oper:unkline       allows UNKLINE and UNDLINE
+  #   oper:remote_ban    allows remote klines
+  #   oper:rehash        allows REHASH of server config
+  #   oper:die           allows DIE and RESTART
+
 roles:
   # name - the name of the privilege set
-  "admin":
+  "local_op":
     # capabilities - a list of qualified capability names
     capabilities:
-      - oper:kill
+      - oper:local_kill
+      - oper:kline
+      - oper:unkline
+
+    # title - metadata identifying the specific role
+    title: "IRC Operator"
+
+  # name - the name of the privilege set
+  "global_op":
+    # extends - inherets this role's capabilities
+    extends: "local_op"
+
+    # capabilities - a list of qualified capability names
+    capabilities:
+      - oper:global_kill
+      - oper:remote_ban
+
+    # title - metadata identifying the specific role
+    title: "IRC Operator"
+
+  # name - the name of the privilege set
+  "network_admin":
+    # capabilities - a list of qualified capability names
+    capabilities:
+      - oper:global_kill
       - oper:routing
 
-    # whois - metadata identifying the specific role
-    whois: "IRC Administrator"
+    # title - metadata identifying the specific role
+    title: "Network Administrator"
+
+  # name - the name of the privilege set
+  "server_admin":
+    # extends - inherets this role's capabilities
+    extends: "local_op"
+
+    # capabilities - a list of qualified capability names
+    capabilities:
+      - oper:rehash
+      - oper:die
+
+    # title - metadata identifying the specific role
+    title: "Server Administrator"
+
 
 # Operator credentials allow a user to transition from a typical user role
 # to a privileged role.
@@ -71,6 +123,7 @@ opers:
 
     # role - the role that the credentials allow transition to
     role: "admin"
+
 
 # The extensions section is a list of extension modules to load.
 extensions:

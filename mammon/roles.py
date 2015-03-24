@@ -25,7 +25,7 @@ class Role:
 
         # defaults
         self.capabilities = []
-        self.whois = ''
+        self.title = ''
         self.whois_format = None
 
         for k, v in kwargs.items():
@@ -34,14 +34,14 @@ class Role:
         # automatically choose a/an for whois message
         if self.whois_format is None:
             self.whois_format = default_whois_format
-            for character in self.whois:
+            for character in self.title:
                 if character.isalpha() and character.lower() in ['a', 'e', 'i', 'o', 'u']:
                     self.whois_format = default_vowel_whois_format
                     break
                 elif character.isalpha():
                     break
 
-        self.whois_line = self.whois_format.format(role=self.whois)
+        self.whois_line = self.whois_format.format(role=self.title)
 
         # extending roles
         if roles is None:
