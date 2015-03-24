@@ -149,7 +149,7 @@ def m_METADATA(cli, ev_msg):
                 pass
 
         else:
-            if key.lower() not in target.user_set_metadata:
+            if key.lower() not in target.user_set_metadata and key.lower() not in cli.ctx.conf.metadata.get('restricted_keys', []):
                 limit = cli.ctx.conf.metadata.get('limit', None)
                 if limit is not None:
                     if len(target.user_set_metadata) + 1 > limit:
