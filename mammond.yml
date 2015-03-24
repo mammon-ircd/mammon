@@ -37,8 +37,8 @@ logs:
 # metadata.
 
   # mammon capability names:
-  #   oper:local_kill    allows local users to be /KILL'd
-  #   oper:global_kill   allows local and remote users to be /KILL'd
+  #   oper:local_kill    allows /KILLing local users
+  #   oper:global_kill   allows /KILLing local and remote users
   #   oper:routing       allows remote SQUIT and CONNECT
   #   oper:kline         allows KLINE and DLINE
   #   oper:unkline       allows UNKLINE and UNDLINE
