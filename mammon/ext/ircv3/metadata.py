@@ -21,6 +21,7 @@ from mammon.server import eventmgr_core
 from mammon.server import eventmgr_rfc1459
 from mammon.capability import Capability
 
+# XXX - add to MONITOR system when implemented
 cap_metadata_notify = Capability('metadata-notify')
 
 VALID_METADATA_KEY = re.compile(r'^[a-zA-Z0-9_\.\:]+$')
@@ -87,9 +88,18 @@ def m_METADATA(cli, ev_msg):
 
         for key in keys:
             if key in target.metadata:
-                # XXX - to make sure user has privs to see this key
-                #   probably through a  key -> [role]  map for restricted keys on server class
-                #   and through channel ACL
+                # check restricted keys
+                if key in cli.ctx.conf.metadata.get('restricted_keys', []):
+                    if cli.role and key in cli.role.metakeys:
+                        pass
+                    else:
+                        # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
+                        #   to leak less info, make sure we want to do this
+                        cli.dump_numeric('766', [key, 'no matching keys'])
+                        continue
+
+                # XXX - make sure user has privs to set this key through channel ACL
+
                 args = [target_name, key, '*']
                 if isinstance(target.metadata[key], str):
                     args.append(target.metadata[key])
@@ -170,7 +180,7 @@ def m_METADATA(cli, ev_msg):
             return
 
         for key, data in dict(target.metadata).items():
-            # XXX - to make sure user has perms to clear keys, channel ACL etc
+            # XXX - make sure user has perms to clear keys via channel ACL
 
             # we check keys here because even if a user is clearing their own METADATA,
             #   there may be admin / oper-only / server keys which should not be cleared
