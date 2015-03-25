@@ -69,6 +69,13 @@ class ConfigHandler(object):
                     continue
 
                 context.load_cert_chain(certfile, keyfile=keyfile)
+
+                # disable old protocols
+                context.options |= ssl.OP_NO_SSLv2
+                context.options |= ssl.OP_NO_SSLv3
+
+                # disable compression because of CRIME attack
+                context.options |= ssl.OP_NO_COMPRESSION
             else:
                 context = None
 
