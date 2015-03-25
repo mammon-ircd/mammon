@@ -55,8 +55,6 @@ def m_METADATA(cli, ev_msg):
 
     # list all metadata
     if command == 'LIST':
-        returned_results = False
-
         for key, data in target.metadata.items():
             # check restricted keys
             visibility = '*'
@@ -67,17 +65,10 @@ def m_METADATA(cli, ev_msg):
                     continue
 
             # return key
-            if not returned_results:
-                returned_results = True
-
             args = [target_name, key, visibility]
             if isinstance(target.metadata[key], str):
                 args.append(data)
             cli.dump_numeric('761', args)
-
-        if not returned_results:
-            cli.dump_numeric('766', ['*', 'no matching keys'])
-            return
 
     # list specific keys
     elif command == 'GET':
