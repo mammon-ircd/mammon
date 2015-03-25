@@ -76,6 +76,10 @@ class ConfigHandler(object):
 
                 # disable compression because of CRIME attack
                 context.options |= ssl.OP_NO_COMPRESSION
+
+                # XXX - we want to move SSL out-of-process, similar to how charybdis does it,
+                #   but for now, just a warning
+                print('mammon: note: SSL support is not yet optimized and may cause slowdowns in your server')
             else:
                 context = None
 
