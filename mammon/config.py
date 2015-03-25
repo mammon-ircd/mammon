@@ -15,6 +15,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+import os
+import ssl
 import yaml
 import asyncio
 import logging
@@ -51,8 +53,37 @@ class ConfigHandler(object):
         for l in self.listeners:
             proto = l.get('proto', 'client')
 
-            self.ctx.logger.info('opening listener at {0}:{1} [{2}]'.format(l['host'], l['port'], proto))
-            lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'])
+            self.ctx.logger.info('opening listener at {0}:{1} [{2}] {3}'.format(l['host'], l['port'], proto, 'SSL' if l['ssl'] else ''))
+
+            if l['ssl']:
+                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+
+                keyfile = os.path.expanduser(l.get('keyfile', ''))
+                if not keyfile:
+                    print('mammon: error: SSL listener {}:{} [{}] does not have a `keyfile`, skipping'.format(l['host'], l['port'], proto))
+                    continue
+
+                certfile = os.path.expanduser(l.get('certfile', ''))
+                if not certfile:
+                    print('mammon: error: SSL listener {}:{} [{}] does not have a `certfile`, skipping'.format(l['host'], l['port'], proto))
+                    continue
+
+                context.load_cert_chain(certfile, keyfile=keyfile)
+
+                # disable old protocols
+                context.options |= ssl.OP_NO_SSLv2
+                context.options |= ssl.OP_NO_SSLv3
+
+                # disable compression because of CRIME attack
+                context.options |= ssl.OP_NO_COMPRESSION
+
+                # XXX - we want to move SSL out-of-process, similar to how charybdis does it,
+                #   but for now, just a warning
+                print('mammon: note: SSL support is not yet optimized and may cause slowdowns in your server')
+            else:
+                context = None
+
+            lstn = self.ctx.eventloop.create_server(self.listener_protos[proto], l['host'], l['port'], ssl=context)
             self.ctx.listeners.append(lstn)
 
         roles = {}
