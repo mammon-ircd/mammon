@@ -73,6 +73,9 @@ class ClientProtocol(asyncio.Protocol):
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
 
+        self.tls = self.transport.get_extra_info('sslcontext', default=None) is not None
+        self.props['special:tls'] = True
+
         asyncio.async(self.do_rdns_check())
 
     def update_idle(self):
@@ -315,3 +318,7 @@ class ClientProtocol(asyncio.Protocol):
         # XXX - LUSERS isn't implemented.
         # self.handle_side_effect('LUSERS')
         self.handle_side_effect('MOTD')
+
+        if self.tls:
+            cipher = self.transport.get_extra_info('cipher')
+            self.dump_notice('You are connected using {0}-{1}-{2}'.format(*cipher))

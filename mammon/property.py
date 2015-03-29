@@ -21,7 +21,8 @@ from .utility import CaseInsensitiveDict
 user_property_items = {
     'user:invisible': 'i',
     'user:wallops': 'w',
-    'special:oper': 'o'
+    'special:oper': 'o',
+    'special:tls': 'Z'
 }
 
 user_property_items = CaseInsensitiveDict(**user_property_items)
