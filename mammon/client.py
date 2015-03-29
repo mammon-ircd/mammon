@@ -75,6 +75,9 @@ class ClientProtocol(asyncio.Protocol):
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
 
+        self.tls = self.transport.get_extra_info('sslcontext', default=None) is not None
+        self.props['special:tls'] = True
+
         asyncio.async(self.do_rdns_check())
 
     def update_idle(self):
@@ -308,6 +311,10 @@ class ClientProtocol(asyncio.Protocol):
 
         self.registration_ts = self.ctx.current_ts
         self.update_idle()
+
+        if self.tls:
+            cipher = self.transport.get_extra_info('cipher')
+            self.dump_notice('You are connected using {1}-{0}-{2}'.format(*cipher))
 
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
