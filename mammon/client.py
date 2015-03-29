@@ -309,6 +309,10 @@ class ClientProtocol(asyncio.Protocol):
         self.registration_ts = self.ctx.current_ts
         self.update_idle()
 
+        if self.tls:
+            cipher = self.transport.get_extra_info('cipher')
+            self.dump_notice('You are connected using {1}-{0}-{2}'.format(*cipher))
+
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
         self.dump_numeric('003', ['This server was started at ' + self.ctx.startstamp])
@@ -318,7 +322,3 @@ class ClientProtocol(asyncio.Protocol):
         # XXX - LUSERS isn't implemented.
         # self.handle_side_effect('LUSERS')
         self.handle_side_effect('MOTD')
-
-        if self.tls:
-            cipher = self.transport.get_extra_info('cipher')
-            self.dump_notice('You are connected using {0}-{1}-{2}'.format(*cipher))
