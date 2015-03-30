@@ -62,5 +62,11 @@ class Role:
             for capability in roles.get(extends).capabilities:
                 if capability not in self.capabilities:
                     self.capabilities.append(capability)
+            for key in roles.get(extends).metakeys_get:
+                if key not in self.metakeys_get:
+                    self.metakeys_get.append(key)
+            for key in roles.get(extends).metakeys_set:
+                if key not in self.metakeys_set:
+                    self.metakeys_set.append(key)
         elif extends:
             print('mammon: error: error in role', name, '- extending role', extends, 'does not exist')

@@ -33,6 +33,8 @@ def is_valid_metadata_key(key):
 def m_METADATA(cli, ev_msg):
     target_name, command = ev_msg['params'][:2]
 
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+
     # get target
     permission_to_edit_target = False
 
@@ -53,8 +55,6 @@ def m_METADATA(cli, ev_msg):
     if target is None:
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
-
-    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
 
     # list all metadata
     if command == 'LIST':
@@ -82,11 +82,12 @@ def m_METADATA(cli, ev_msg):
             return
 
         for key in keys:
-            if key in target.metadata:
+            key_slug = key.lower()
+            if key_slug in target.metadata:
                 # check restricted keys
                 visibility = '*'
-                if key in restricted_keys:
-                    if cli.role and key in cli.role.metakeys_get:
+                if key_slug in restricted_keys:
+                    if cli.role and key_slug in cli.role.metakeys_get:
                         visibility = 'server:restricted'
                     else:
                         # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
@@ -97,8 +98,8 @@ def m_METADATA(cli, ev_msg):
                 # XXX - make sure user has privs to set this key through channel ACL
 
                 args = [target_name, key, visibility]
-                if isinstance(target.metadata[key], str):
-                    args.append(target.metadata[key])
+                if isinstance(target.metadata[key_slug], str):
+                    args.append(target.metadata[key_slug])
                 cli.dump_numeric('761', args)
             elif not is_valid_metadata_key(key):
                 cli.dump_numeric('767', [key, 'invalid metadata key'])
@@ -109,6 +110,7 @@ def m_METADATA(cli, ev_msg):
     elif command == 'SET':
         if len(ev_msg['params']) > 2:
             key = ev_msg['params'][2]
+            key_slug = key.lower()
             if len(ev_msg['params']) > 3:
                 value = ev_msg['params'][3]
             else:
@@ -123,18 +125,24 @@ def m_METADATA(cli, ev_msg):
             return
 
         # check key is valid, and if we're using white/blacklists, check those too
-        key_not_in_whitelist = cli.ctx.conf.metadata.get('whitelist', []) and key.lower() not in cli.ctx.conf.metadata.get('whitelist', [])
-        key_in_blacklist = key.lower() in cli.ctx.conf.metadata.get('blacklist', [])
+        whitelist = cli.ctx.conf.metadata.get('whitelist', [])
+        blacklist = cli.ctx.conf.metadata.get('blacklist', [])
 
-        if not is_valid_metadata_key(key) or key_not_in_whitelist or key_in_blacklist:
+        is_valid = False
+        if is_valid_metadata_key(key):
+            if key_slug not in blacklist:
+                if key_slug in whitelist or not whitelist or key_slug in restricted_keys:
+                    is_valid = True
+
+        if not is_valid:
             cli.dump_numeric('767', [key, 'invalid metadata key'])
             return
 
         # check restricted keys
         key_restricted = False
         visibility = '*'
-        if key in restricted_keys:
-            if cli.role and key in cli.role.metakeys_set:
+        if key_slug in restricted_keys:
+            if cli.role and key_slug in cli.role.metakeys_set:
                 visibility = 'server:restricted'
             else:
                 key_restricted = True
@@ -150,22 +158,22 @@ def m_METADATA(cli, ev_msg):
 
         if value is None:
             try:
-                target.user_set_metadata.remove(key.lower())
-                del target.metadata[key]
+                target.user_set_metadata.remove(key_slug)
+                del target.metadata[key_slug]
             except KeyError:
                 pass
 
         else:
             # if setting a new, non-restricted key, take metadata limits into account
-            if key.lower() not in target.user_set_metadata and key.lower() not in restricted_keys:
+            if key_slug not in target.user_set_metadata and key_slug not in restricted_keys:
                 limit = cli.ctx.conf.metadata.get('limit', None)
                 if limit is not None:
                     if len(target.user_set_metadata) + 1 > limit:
                         cli.dump_numeric('764', [target_name, 'metadata limit reached'])
                         return
 
-                target.user_set_metadata.append(key.lower())
-            target.metadata[key] = value
+                target.user_set_metadata.append(key_slug)
+            target.metadata[key_slug] = value
             args.append(value)
 
         cli.dump_numeric('761', args)
@@ -194,7 +202,7 @@ def m_METADATA(cli, ev_msg):
                 target.metadata[key]
             except KeyError:
                 pass
-            target.user_set_metadata.remove(key.lower())
+            target.user_set_metadata.remove(key_slug)
             cli.dump_numeric('761', [target_name, key, visibility])
 
     # almost everything returns this at the end
