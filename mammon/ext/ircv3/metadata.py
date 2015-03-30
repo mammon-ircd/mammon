@@ -47,19 +47,22 @@ def m_METADATA(cli, ev_msg):
 
             permission_to_edit_target = target == cli
             if not permission_to_edit_target:
-                permission_to_edit_target = cli.role and 'metadata:edit' in cli.role.capabilities
+                permission_to_edit_target = cli.role and 'metadata:set_local' in cli.role.capabilities
+                # XXX - hook up metadata:set_global when we have s2s
 
     if target is None:
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
+
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
 
     # list all metadata
     if command == 'LIST':
         for key, data in target.metadata.items():
             # check restricted keys
             visibility = '*'
-            if key in cli.ctx.conf.metadata.get('restricted_keys', []):
-                if cli.role and key in cli.role.metakeys:
+            if key in restricted_keys:
+                if cli.role and key in cli.role.metakeys_get:
                     visibility = 'server:restricted'
                 else:
                     continue
@@ -82,8 +85,8 @@ def m_METADATA(cli, ev_msg):
             if key in target.metadata:
                 # check restricted keys
                 visibility = '*'
-                if key in cli.ctx.conf.metadata.get('restricted_keys', []):
-                    if cli.role and key in cli.role.metakeys:
+                if key in restricted_keys:
+                    if cli.role and key in cli.role.metakeys_get:
                         visibility = 'server:restricted'
                     else:
                         # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
@@ -130,8 +133,8 @@ def m_METADATA(cli, ev_msg):
         # check restricted keys
         key_restricted = False
         visibility = '*'
-        if key in cli.ctx.conf.metadata.get('restricted_keys', []):
-            if cli.role and key in cli.role.metakeys:
+        if key in restricted_keys:
+            if cli.role and key in cli.role.metakeys_set:
                 visibility = 'server:restricted'
             else:
                 key_restricted = True
@@ -153,7 +156,8 @@ def m_METADATA(cli, ev_msg):
                 pass
 
         else:
-            if key.lower() not in target.user_set_metadata and key.lower() not in cli.ctx.conf.metadata.get('restricted_keys', []):
+            # if setting a new, non-restricted key, take metadata limits into account
+            if key.lower() not in target.user_set_metadata and key.lower() not in restricted_keys:
                 limit = cli.ctx.conf.metadata.get('limit', None)
                 if limit is not None:
                     if len(target.user_set_metadata) + 1 > limit:
@@ -179,8 +183,8 @@ def m_METADATA(cli, ev_msg):
             # we check keys here because even if a user is clearing their own METADATA,
             #   there may be admin / oper-only / server keys which should not be cleared
             visibility = '*'
-            if key in cli.ctx.conf.metadata.get('restricted_keys', []):
-                if cli.role and key in cli.role.metakeys:
+            if key in restricted_keys:
+                if cli.role and key in cli.role.metakeys_set:
                     visibility = 'server:restricted'
                 else:
                     continue
