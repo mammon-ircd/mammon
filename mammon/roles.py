@@ -24,13 +24,23 @@ class Role:
         self.name = name
 
         # defaults
-        self.metakeys = []
+        self.metakeys_get = []
+        self.metakeys_set = []
+        self.metakeys_access = []
         self.capabilities = []
         self.title = ''
         self.whois_format = None
 
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        # metadata
+        for key in self.metakeys_access:
+            if key not in self.metakeys_get:
+                self.metakeys_get.append(key)
+            if key not in self.metakeys_set:
+                self.metakeys_set.append(key)
+        del self.metakeys_access
 
         # automatically choose a/an for whois message
         if self.whois_format is None:
