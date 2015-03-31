@@ -31,27 +31,6 @@ def validate_metadata_key(key_name):
     badchars = key_name.translate(metadata_key_allowed_chars_tbl)
     return badchars == ''
 
-@eventmgr_rfc1459.message('METADATA', min_params=2)
-def m_METADATA(cli, ev_msg):
-    target_name, command = ev_msg['params'][:2]
-
-    # get target
-    if target_name == '*':
-        target = cli
-    else:
-        target = cli.ctx.channels.get(target_name, None)
-        if target is None:
-            target = cli.ctx.clients.get(target_name, None)
-
-    if target is None:
-        cli.dump_numeric('765', [target_name, 'invalid metadata target'])
-        return
-
-    if command in metadata_subcommands:
-        metadata_subcommands[command](cli, ev_msg, target_name, target)
-    else:
-        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
-
 def metadata_GET(cli, ev_msg, target_name, target):
     if len(ev_msg['params']) > 2:
         keys = ev_msg['params'][2:]
@@ -187,6 +166,10 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         return
 
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+    if cli.role:
+        viewable_keys = restricted_keys + cli.role.metakeys_get + cli.role.metakeys_set
+    else:
+        viewable_keys = []
 
     for key, data in dict(target.metadata).items():
         # XXX - make sure user has perms to clear keys via channel ACL
@@ -195,8 +178,16 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         #   there may be admin / oper-only / server keys which should not be cleared
         visibility = '*'
         if key_slug in restricted_keys:
-            if cli.role and key_slug in cli.role.metakeys_set:
+            # user cannot see key at all, this is likely a server / oper-only key
+            #   so we're not going to even tell them it exists
+            if key_slug not in viewable_keys:
+                continue
+
+            elif cli.role and key_slug in cli.role.metakeys_set:
                 visibility = 'server:restricted'
+
+            # if they don't have permission to edit this specific key, just ignore it
+            #   maybe the spec should say throw an ERR_KEYNOPERMISSION here?
             else:
                 continue
 
@@ -216,3 +207,24 @@ metadata_subcommands = {
     'SET': metadata_SET,
     'CLEAR': metadata_CLEAR,
 }
+
+@eventmgr_rfc1459.message('METADATA', min_params=2)
+def m_METADATA(cli, ev_msg):
+    target_name, command = ev_msg['params'][:2]
+
+    # get target
+    if target_name == '*':
+        target = cli
+    else:
+        target = cli.ctx.channels.get(target_name, None)
+        if target is None:
+            target = cli.ctx.clients.get(target_name, None)
+
+    if target is None:
+        cli.dump_numeric('765', [target_name, 'invalid metadata target'])
+        return
+
+    if command in metadata_subcommands:
+        metadata_subcommands[command](cli, ev_msg, target_name, target)
+    else:
+        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])

@@ -168,5 +168,4 @@ opers:
 # The extensions section is a list of extension modules to load.
 extensions:
 - mammon.ext.rfc1459.42
-- mammon.ext.ircv3.metadata
 - mammon.ext.ircv3.server_time
