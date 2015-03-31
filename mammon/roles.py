@@ -24,12 +24,23 @@ class Role:
         self.name = name
 
         # defaults
+        self.metakeys_get = []
+        self.metakeys_set = []
+        self.metakeys_access = []
         self.capabilities = []
         self.title = ''
         self.whois_format = None
 
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        # metadata
+        for key in self.metakeys_access:
+            if key not in self.metakeys_get:
+                self.metakeys_get.append(key)
+            if key not in self.metakeys_set:
+                self.metakeys_set.append(key)
+        del self.metakeys_access
 
         # automatically choose a/an for whois message
         if self.whois_format is None:
@@ -51,5 +62,11 @@ class Role:
             for capability in roles.get(extends).capabilities:
                 if capability not in self.capabilities:
                     self.capabilities.append(capability)
+            for key in roles.get(extends).metakeys_get:
+                if key not in self.metakeys_get:
+                    self.metakeys_get.append(key)
+            for key in roles.get(extends).metakeys_set:
+                if key not in self.metakeys_set:
+                    self.metakeys_set.append(key)
         elif extends:
             print('mammon: error: error in role', name, '- extending role', extends, 'does not exist')

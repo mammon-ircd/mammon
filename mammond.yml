@@ -54,6 +54,11 @@ roles:
       - oper:local_kill
       - oper:kline
       - oper:unkline
+      - metadata:set_local
+
+    # metakeys_get - metadata keys this role can view
+    metakeys_get:
+      # - spammer_probability
 
     # title - metadata identifying the specific role
     title: "IRC Operator"
@@ -67,6 +72,7 @@ roles:
     capabilities:
       - oper:global_kill
       - oper:remote_ban
+      - metadata:set_global
 
     # title - metadata identifying the specific role
     title: "IRC Operator"
@@ -94,6 +100,40 @@ roles:
     # title - metadata identifying the specific role
     title: "Server Administrator"
 
+  # example metadata-specific roles
+  # name - the name of the privilege set
+  "spam_detection_bot":
+    # capabilities - a list of qualified capability names
+    capabilities:
+      - metadata:set_global
+
+    # metakeys_access - metadata keys this role can view and set
+    metakeys_access:
+      - spammer_probability
+
+    # title - metadata identifying the specific role
+    title: "Spam Detection Bot"
+
+
+# Metadata defines the metadata users are allowed to set for themselves
+metadata:
+  # limit - max number of metadata each target is allowed to have
+  #   comment out to remove limit
+  limit: 20
+
+  # whitelist - if defined, a list of lowercase keys that are checked when users set data
+  whitelist:
+    - avatar
+    - info
+    - source
+    - url
+    - version
+
+  # restricted_keys - keys that unprived users cannot see / edit, and require a
+  #   special entry in a ROLE to see / edit
+  restricted_keys:
+    # - spammer_probability
+
 
 # Operator credentials allow a user to transition from a typical user role
 # to a privileged role.
@@ -107,7 +147,7 @@ opers:
     hostmask: "*@localhost"
 
     # role - the role that the credentials allow transition to
-    role: "admin"
+    role: "local_op"
 
   # name - the name of the operator
   "somebody":
@@ -122,7 +162,7 @@ opers:
     hostmask: "somebody!*@localhost"
 
     # role - the role that the credentials allow transition to
-    role: "admin"
+    role: "local_op"
 
 
 # The extensions section is a list of extension modules to load.

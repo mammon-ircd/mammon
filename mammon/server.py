@@ -23,6 +23,7 @@ def get_context():
     global running_context
     return running_context
 
+from . import metadata
 from .config import ConfigHandler
 from .hashing import HashHandler
 from .utility import CaseInsensitiveDict, ExpiringDict

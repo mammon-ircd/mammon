@@ -73,6 +73,8 @@ class Channel(object):
         self.topic_setter = str()
         self.topic_ts = 0
         self.props = CaseInsensitiveDict()
+        self.user_set_metadata = []
+        self.metadata = CaseInsensitiveDict()
 
     def authorize(self, cli, ev_msg):
         if 'key' in self.props and self.props['key'] != ev_msg['params'][1]:

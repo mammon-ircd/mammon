@@ -21,6 +21,7 @@ import socket
 import copy
 
 from ircreactor.envelope import RFC1459Message
+from .channel import Channel
 from .utility import CaseInsensitiveDict, uniq
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
@@ -59,6 +60,8 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
         self.caps = CaseInsensitiveDict()
+        self.user_set_metadata = []
+        self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
 
         self.away_message = str()
@@ -92,6 +95,25 @@ class ClientProtocol(asyncio.Protocol):
     @property
     def idle_time(self):
         return int(self.ctx.current_ts - self.last_event_ts)
+
+    def able_to_edit_metadata(self, target):
+        """True if we're able to edit metadata on the given target, False otherwise."""
+        if self == target:
+            return True
+
+        if isinstance(target, ClientProtocol):
+            if not self.role:
+                return False
+
+            if 'metadata:set_global' in self.role.capabilities:
+                return True
+
+            if self.servername == target.servername and 'metadata:set_local' in self.role.capabilities:
+                return True
+
+        if isinstance(target, Channel):
+            # XXX - hook up channel ACL when we have that
+            return False
 
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.
@@ -293,7 +315,8 @@ class ClientProtocol(asyncio.Protocol):
         [i.dump_message(message) for i in peerlist]
 
     def dump_isupport(self):
-        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True}
+        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True, 'METADATA': self.ctx.conf.metadata.get('limit', True)}
+
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
             if isinstance(v, bool):
