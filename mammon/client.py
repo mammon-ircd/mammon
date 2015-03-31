@@ -21,6 +21,7 @@ import socket
 import copy
 
 from ircreactor.envelope import RFC1459Message
+from .channel import Channel
 from .utility import CaseInsensitiveDict, uniq
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
@@ -94,6 +95,25 @@ class ClientProtocol(asyncio.Protocol):
     @property
     def idle_time(self):
         return int(self.ctx.current_ts - self.last_event_ts)
+
+    def able_to_edit_metadata(self, target):
+        """True if we're able to edit metadata on the given target, False otherwise."""
+        if self == target:
+            return True
+
+        if isinstance(target, ClientProtocol):
+            if not self.role:
+                return False
+
+            if 'metadata:set_global' in self.role.capabilities:
+                return True
+
+            if self.servername == target.servername and 'metadata:set_local' in self.role.capabilities:
+                return True
+
+        if isinstance(target, Channel):
+            # XXX - hook up channel ACL when we have that
+            return False
 
     def connection_lost(self, exc):
         """Handle loss of connection if it was already not handled.

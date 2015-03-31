@@ -15,7 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-import re
+import string
 
 from mammon.server import eventmgr_core
 from mammon.server import eventmgr_rfc1459
@@ -24,186 +24,195 @@ from mammon.capability import Capability
 # XXX - add to MONITOR system when implemented
 cap_metadata_notify = Capability('metadata-notify')
 
-VALID_METADATA_KEY = re.compile(r'^[a-zA-Z0-9_\.\:]+$')
+metadata_key_allowed_chars = string.ascii_letters + string.digits + '_.:'
+metadata_key_allowed_chars_tbl = str.maketrans('', '', metadata_key_allowed_chars)
 
-def is_valid_metadata_key(key):
-    return bool(VALID_METADATA_KEY.search(key))
+def validate_metadata_key(key_name):
+    badchars = key_name.translate(metadata_key_allowed_chars_tbl)
+    return badchars == ''
 
 @eventmgr_rfc1459.message('METADATA', min_params=2)
 def m_METADATA(cli, ev_msg):
     target_name, command = ev_msg['params'][:2]
 
-    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
-
     # get target
-    permission_to_edit_target = False
-
     if target_name == '*':
         target = cli
-
-        permission_to_edit_target = True
     else:
         target = cli.ctx.channels.get(target_name, None)
         if target is None:
             target = cli.ctx.clients.get(target_name, None)
 
-            permission_to_edit_target = target == cli
-            if not permission_to_edit_target:
-                permission_to_edit_target = cli.role and 'metadata:set_local' in cli.role.capabilities
-                # XXX - hook up metadata:set_global when we have s2s
-
     if target is None:
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
 
-    # list all metadata
-    if command == 'LIST':
-        for key, data in target.metadata.items():
+    if command in metadata_subcommands:
+        metadata_subcommands[command](cli, ev_msg, target_name, target)
+    else:
+        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+
+def metadata_GET(cli, ev_msg, target_name, target):
+    if len(ev_msg['params']) > 2:
+        keys = ev_msg['params'][2:]
+    else:
+        cli.dump_numeric('461', ['METADATA', 'Not enough parameters'])
+        return
+
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+
+    for key in keys:
+        if key in target.metadata:
             # check restricted keys
             visibility = '*'
             if key in restricted_keys:
                 if cli.role and key in cli.role.metakeys_get:
                     visibility = 'server:restricted'
                 else:
+                    # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
+                    #   to leak less info, make sure we want to do this
+                    cli.dump_numeric('766', [key, 'no matching keys'])
                     continue
 
-            # return key
+            # XXX - make sure user has privs to set this key through channel ACL
+
             args = [target_name, key, visibility]
             if isinstance(target.metadata[key], str):
-                args.append(data)
+                args.append(target.metadata[key])
             cli.dump_numeric('761', args)
-
-    # list specific keys
-    elif command == 'GET':
-        if len(ev_msg['params']) > 2:
-            keys = ev_msg['params'][2:]
-        else:
-            cli.dump_numeric('461', ['METADATA', 'Not enough parameters'])
-            return
-
-        for key in keys:
-            key_slug = key.lower()
-            if key_slug in target.metadata:
-                # check restricted keys
-                visibility = '*'
-                if key_slug in restricted_keys:
-                    if cli.role and key_slug in cli.role.metakeys_get:
-                        visibility = 'server:restricted'
-                    else:
-                        # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
-                        #   to leak less info, make sure we want to do this
-                        cli.dump_numeric('766', [key, 'no matching keys'])
-                        continue
-
-                # XXX - make sure user has privs to set this key through channel ACL
-
-                args = [target_name, key, visibility]
-                if isinstance(target.metadata[key_slug], str):
-                    args.append(target.metadata[key_slug])
-                cli.dump_numeric('761', args)
-            elif not is_valid_metadata_key(key):
-                cli.dump_numeric('767', [key, 'invalid metadata key'])
-            else:
-                cli.dump_numeric('766', [key, 'no matching keys'])
-
-    # setting keys
-    elif command == 'SET':
-        if len(ev_msg['params']) > 2:
-            key = ev_msg['params'][2]
-            key_slug = key.lower()
-            if len(ev_msg['params']) > 3:
-                value = ev_msg['params'][3]
-            else:
-                value = None
-        else:
-            cli.dump_numeric('461', ['METADATA', 'Not enough parameters'])
-            return
-
-        # check user has permission for target
-        if not permission_to_edit_target:
-            cli.dump_numeric('769', [target_name, '*', 'permission denied'])
-            return
-
-        # check key is valid, and if we're using white/blacklists, check those too
-        whitelist = cli.ctx.conf.metadata.get('whitelist', [])
-        blacklist = cli.ctx.conf.metadata.get('blacklist', [])
-
-        is_valid = False
-        if is_valid_metadata_key(key):
-            if key_slug not in blacklist:
-                if key_slug in whitelist or not whitelist or key_slug in restricted_keys:
-                    is_valid = True
-
-        if not is_valid:
+        elif not validate_metadata_key(key):
             cli.dump_numeric('767', [key, 'invalid metadata key'])
-            return
+        else:
+            cli.dump_numeric('766', [key, 'no matching keys'])
 
+def metadata_LIST(cli, ev_msg, target_name, target):
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+
+    for key, data in target.metadata.items():
         # check restricted keys
-        key_restricted = False
+        visibility = '*'
+        if key in restricted_keys:
+            if cli.role and key in cli.role.metakeys_get:
+                visibility = 'server:restricted'
+            else:
+                continue
+
+        # return key
+        args = [target_name, key, visibility]
+        if isinstance(target.metadata[key], str):
+            args.append(data)
+        cli.dump_numeric('761', args)
+
+    cli.dump_numeric('762', ['end of metadata'])
+
+def metadata_SET(cli, ev_msg, target_name, target):
+    if len(ev_msg['params']) > 2:
+        key = ev_msg['params'][2]
+        if len(ev_msg['params']) > 3:
+            value = ev_msg['params'][3]
+        else:
+            value = None
+    else:
+        cli.dump_numeric('461', ['METADATA', 'Not enough parameters'])
+        return
+
+    # check user has permission for target
+    if not cli.able_to_edit_metadata(target):
+        cli.dump_numeric('769', [target_name, '*', 'permission denied'])
+        return
+
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+
+    # check key is valid, and if we're using white/blacklists, check those too
+    whitelist = cli.ctx.conf.metadata.get('whitelist', [])
+    blacklist = cli.ctx.conf.metadata.get('blacklist', [])
+
+    is_valid = False
+    if validate_metadata_key(key):
+        if key not in blacklist:
+            if key in whitelist or not whitelist or key in restricted_keys:
+                is_valid = True
+
+    if not is_valid:
+        cli.dump_numeric('767', [key, 'invalid metadata key'])
+        return
+
+    # check restricted keys
+    key_restricted = False
+    visibility = '*'
+    if key in restricted_keys:
+        if cli.role and key in cli.role.metakeys_set:
+            visibility = 'server:restricted'
+        else:
+            key_restricted = True
+
+    # XXX - make sure user has privs to set this key through channel ACL
+
+    if key_restricted:
+        cli.dump_numeric('769', [target_name, key, 'permission denied'])
+        return
+
+    # set / unset key
+    args = [target_name, key, visibility]
+    key_slug = key.casefold()
+
+    if value is None:
+        try:
+            target.user_set_metadata.remove(key_slug)
+            del target.metadata[key]
+        except KeyError:
+            pass
+
+    else:
+        # if setting a new, non-restricted key, take metadata limits into account
+        if key_slug not in target.user_set_metadata and key_slug not in restricted_keys:
+            limit = cli.ctx.conf.metadata.get('limit', None)
+            if limit is not None:
+                if len(target.user_set_metadata) + 1 > limit:
+                    cli.dump_numeric('764', [target_name, 'metadata limit reached'])
+                    return
+
+            target.user_set_metadata.append(key_slug)
+        target.metadata[key] = value
+        args.append(value)
+
+    cli.dump_numeric('761', args)
+
+    cli.dump_numeric('762', ['end of metadata'])
+
+def metadata_CLEAR(cli, ev_msg, target_name, target):
+    # check user has permission for target
+    if not cli.able_to_edit_metadata(target):
+        cli.dump_numeric('769', [target_name, '*', 'permission denied'])
+        return
+
+    restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+
+    for key, data in dict(target.metadata).items():
+        # XXX - make sure user has perms to clear keys via channel ACL
+
+        # we check keys here because even if a user is clearing their own METADATA,
+        #   there may be admin / oper-only / server keys which should not be cleared
         visibility = '*'
         if key_slug in restricted_keys:
             if cli.role and key_slug in cli.role.metakeys_set:
                 visibility = 'server:restricted'
             else:
-                key_restricted = True
+                continue
 
-        # XXX - make sure user has privs to set this key through channel ACL
+        # and clear the key
+        try:
+            target.metadata[key]
+        except KeyError:
+            pass
+        target.user_set_metadata.remove(key_slug)
+        cli.dump_numeric('761', [target_name, key, visibility])
 
-        if key_restricted:
-            cli.dump_numeric('769', [target_name, key, 'permission denied'])
-            return
-
-        # set / unset key
-        args = [target_name, key, visibility]
-
-        if value is None:
-            try:
-                target.user_set_metadata.remove(key_slug)
-                del target.metadata[key_slug]
-            except KeyError:
-                pass
-
-        else:
-            # if setting a new, non-restricted key, take metadata limits into account
-            if key_slug not in target.user_set_metadata and key_slug not in restricted_keys:
-                limit = cli.ctx.conf.metadata.get('limit', None)
-                if limit is not None:
-                    if len(target.user_set_metadata) + 1 > limit:
-                        cli.dump_numeric('764', [target_name, 'metadata limit reached'])
-                        return
-
-                target.user_set_metadata.append(key_slug)
-            target.metadata[key_slug] = value
-            args.append(value)
-
-        cli.dump_numeric('761', args)
-
-    # clearing all metadata
-    elif command == 'CLEAR':
-        # check user has permission for target
-        if not permission_to_edit_target:
-            cli.dump_numeric('769', [target_name, '*', 'permission denied'])
-            return
-
-        for key, data in dict(target.metadata).items():
-            # XXX - make sure user has perms to clear keys via channel ACL
-
-            # we check keys here because even if a user is clearing their own METADATA,
-            #   there may be admin / oper-only / server keys which should not be cleared
-            visibility = '*'
-            if key in restricted_keys:
-                if cli.role and key in cli.role.metakeys_set:
-                    visibility = 'server:restricted'
-                else:
-                    continue
-
-            # and clear the key
-            try:
-                target.metadata[key]
-            except KeyError:
-                pass
-            target.user_set_metadata.remove(key_slug)
-            cli.dump_numeric('761', [target_name, key, visibility])
-
-    # almost everything returns this at the end
     cli.dump_numeric('762', ['end of metadata'])
+
+metadata_subcommands = {
+    'GET': metadata_GET,
+    'LIST': metadata_LIST,
+    'SET': metadata_SET,
+    'CLEAR': metadata_CLEAR,
+}
