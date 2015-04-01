@@ -22,7 +22,7 @@ from mammon.server import eventmgr_rfc1459
 from mammon.capability import Capability
 
 # XXX - add to MONITOR system when implemented
-cap_metadata_notify = Capability('metadata-notify')
+# cap_metadata_notify = Capability('metadata-notify')
 
 metadata_key_allowed_chars = string.ascii_letters + string.digits + '_.:'
 metadata_key_allowed_chars_tbl = str.maketrans('', '', metadata_key_allowed_chars)
@@ -48,8 +48,6 @@ def metadata_GET(cli, ev_msg, target_name, target):
                 if cli.role and key in cli.role.metakeys_get:
                     visibility = 'server:restricted'
                 else:
-                    # XXX - we give an ERR_NOMATCHINGKEYS instead of ERR_KEYNOPERMISSION here
-                    #   to leak less info, make sure we want to do this
                     cli.dump_numeric('766', [key, 'no matching keys'])
                     continue
 
@@ -202,10 +200,10 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
     cli.dump_numeric('762', ['end of metadata'])
 
 metadata_subcommands = {
-    'GET': metadata_GET,
-    'LIST': metadata_LIST,
-    'SET': metadata_SET,
-    'CLEAR': metadata_CLEAR,
+    'get': metadata_GET,
+    'list': metadata_LIST,
+    'set': metadata_SET,
+    'clear': metadata_CLEAR,
 }
 
 @eventmgr_rfc1459.message('METADATA', min_params=2)
@@ -223,6 +221,8 @@ def m_METADATA(cli, ev_msg):
     if target is None:
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
+
+    command = command.casefold()
 
     if command in metadata_subcommands:
         metadata_subcommands[command](cli, ev_msg, target_name, target)
