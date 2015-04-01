@@ -59,13 +59,14 @@ class Role:
             roles = self.ctx.roles
 
         if extends and extends in roles:
-            for capability in roles.get(extends).capabilities:
+            role = roles.get(extends)
+            for capability in role.capabilities:
                 if capability not in self.capabilities:
                     self.capabilities.append(capability)
-            for key in roles.get(extends).metakeys_get:
+            for key in role.metakeys_get:
                 if key not in self.metakeys_get:
                     self.metakeys_get.append(key)
-            for key in roles.get(extends).metakeys_set:
+            for key in role.metakeys_set:
                 if key not in self.metakeys_set:
                     self.metakeys_set.append(key)
         elif extends:
