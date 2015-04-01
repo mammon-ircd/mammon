@@ -73,7 +73,8 @@ class ClientProtocol(asyncio.Protocol):
         self.eventmgr = eventmgr_rfc1459
 
         self.tls = self.transport.get_extra_info('sslcontext', default=None) is not None
-        self.props['special:tls'] = True
+        if self.tls:
+            self.props['special:tls'] = True
 
         asyncio.async(self.do_rdns_check())
 
