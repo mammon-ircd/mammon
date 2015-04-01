@@ -32,7 +32,8 @@ class Role:
         self.whois_format = None
 
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            if v:
+                setattr(self, k, v)
 
         # metadata
         for key in self.metakeys_access:
