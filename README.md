@@ -43,3 +43,8 @@ In the meantime the dependencies are:
 ## contact
 
 Join us at `irc.dereferenced.org #mammon` or `irc.dereferenced.org #offtopic` (for now).
+
+* SSL is on port 6697 and should provide you the following certificate:
+    * md5 fingerprint=2a8b2f32feded9bad1df39791d0a67c9
+    * sha1 fingerprint=467569bce7d7a9f3379b9a303b377a13b64ff87c
+    * sha256 fingerprint=19951e030aaf41a411145467e1f4e2e056be2b7f892b8db4dc8c2998ae844e2c
