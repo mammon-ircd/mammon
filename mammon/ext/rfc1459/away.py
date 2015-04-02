@@ -23,14 +23,6 @@ cap_away_notify = Capability('away-notify')
 
 @eventmgr_rfc1459.message('AWAY')
 def m_AWAY(cli, ev_msg):
-    # away-notify propogation
-    propogate = []
-    for membership in cli.channels:
-        for user in membership.channel.members:
-            client = user.client
-            if 'away-notify' in client.caps and client not in propogate and client != cli:
-                propogate.append(client)
-
     # set away
     if len(ev_msg['params']):
         message = ev_msg['params'][0]
@@ -60,8 +52,7 @@ def m_AWAY(cli, ev_msg):
 
     # away-notify propogate message
     msg = RFC1459Message.from_data('AWAY', source=cli.hostmask, params=params)
-    for client in propogate:
-        client.dump_message(msg)
+    cli.sendto_common_peers(msg, exclude=[cli], cap='away-notify')
 
 @eventmgr_rfc1459.message('PRIVMSG')
 def m_away_response(cli, ev_msg):
