@@ -42,12 +42,21 @@ def m_AWAY(cli, ev_msg):
 
     # unaway
     else:
-        if 'away' in cli.metadata:
-            del cli.metadata['away']
+        notify = False
+        try:
+            if 'away' in cli.metadata:
+                del cli.metadata['away']
+                notify = True
+        except KeyError:
+            pass
 
         cli.dump_numeric('305', ['You are no longer marked as being away'])
 
-        params = None
+        # if away wasn't set, and was 'unset', don't notify other users
+        if notify:
+            params = None
+        else:
+            return
 
     # away-notify propogate message
     msg = RFC1459Message.from_data('AWAY', source=cli.hostmask, params=params)
