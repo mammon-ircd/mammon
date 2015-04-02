@@ -132,6 +132,7 @@ metadata:
   # restricted_keys - keys that unprived users cannot see / edit, and require a
   #   special entry in a ROLE to see / edit
   restricted_keys:
+    - away
     # - spammer_probability
 
 
@@ -168,4 +169,5 @@ opers:
 # The extensions section is a list of extension modules to load.
 extensions:
 - mammon.ext.rfc1459.42
+- mammon.ext.rfc1459.away
 - mammon.ext.ircv3.server_time
