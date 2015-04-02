@@ -17,7 +17,6 @@
 
 from ircreactor.envelope import RFC1459Message
 from mammon.server import eventmgr_rfc1459
-from mammon.events import m_PRIVMSG
 from mammon.capability import Capability
 
 cap_away_notify = Capability('away-notify')
