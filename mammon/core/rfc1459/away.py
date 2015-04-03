@@ -16,6 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from ircreactor.envelope import RFC1459Message
+
 from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
 from mammon.utility import UserHost
