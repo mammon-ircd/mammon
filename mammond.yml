@@ -132,6 +132,7 @@ metadata:
   # restricted_keys - keys that unprived users cannot see / edit, and require a
   #   special entry in a ROLE to see / edit
   restricted_keys:
+    - away
     # - spammer_probability
 
 

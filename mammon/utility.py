@@ -228,3 +228,20 @@ def uniq(input):
         if x not in output:
             output.append(x)
     return output
+
+class UserHost:
+    def __init__(self, nuh):
+        self.nuh = nuh
+
+    # XXX - put try:except on these just in case doesn't exist
+    @property
+    def nickname(self):
+        return self.nuh.split('!')[0]
+
+    @property
+    def username(self):
+        return self.nuh.split('!')[1].split('@')[0]
+
+    @property
+    def hostname(self):
+        return self.nug.split('@')[1]
