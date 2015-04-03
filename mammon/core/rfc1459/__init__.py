@@ -184,8 +184,6 @@ def m_PRIVMSG(cli, ev_msg):
             cli.dump_numeric('404', [ch.name, 'Cannot send to channel'])
             continue
 
-        msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
-        ch.dump_message(msg, exclusion_list=[cli])
         eventmgr_core.dispatch('channel message', {
             'source': cli,
             'target': ch,
@@ -199,6 +197,12 @@ def m_privmsg_client(info):
     if ctx.conf.name == info['target'].servername:
         msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
         info['target'].dump_message(msg)
+
+@eventmgr_core.handler('channel message')
+def m_privmsg_channel(info):
+    msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
+    # XXX - when we have s2s, make sure we only dump messages to local clients here or in dump_message
+    info['target'].dump_message(msg, exclusion_list=[info['source']])
 
 @eventmgr_rfc1459.message('NOTICE', min_params=2)
 def m_NOTICE(cli, ev_msg):
