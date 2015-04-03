@@ -16,8 +16,9 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from ircreactor.envelope import RFC1459Message
-from mammon.server import eventmgr_core, eventmgr_rfc1459
+from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
+from mammon.utility import UserHost
 
 cap_away_notify = Capability('away-notify')
 
@@ -58,12 +59,19 @@ def m_away_notify(cli):
     msg = RFC1459Message.from_data('AWAY', source=cli.hostmask, params=params)
     cli.sendto_common_peers(msg, exclude=[cli], cap='away-notify')
 
-@eventmgr_rfc1459.message('PRIVMSG')
-def m_away_response(cli, ev_msg):
-    target_name = ev_msg['params'][0]
-    target = cli.ctx.clients.get(target_name, None)
+@eventmgr_core.handler('client message')
+def m_away_response(info):
+    ctx = get_context()
+    target = ctx.clients.get(info['target'], None)
+    if not target:
+        return
 
-    if target:
-        awaymsg = target.metadata.get('away', None)
-        if awaymsg:
-            cli.dump_numeric('301', [target_name, awaymsg])
+    awaymsg = target.metadata.get('away', None)
+    if not awaymsg:
+        return
+
+    source = ctx.clients.get(UserHost(info['source']).nickname, None)
+    if not source:
+        return
+
+    source.dump_numeric('301', [info['target'], awaymsg])

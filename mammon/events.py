@@ -235,6 +235,11 @@ def m_PRIVMSG(cli, ev_msg):
                 continue
             msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[cli_tg.nickname, message])
             cli_tg.dump_message(msg)
+            eventmgr_core.dispatch('client message', {
+                'source': cli.hostmask,
+                'target': target,
+                'message': message,
+            })
             continue
 
         ch = cli.ctx.chmgr.get(target)
@@ -248,6 +253,11 @@ def m_PRIVMSG(cli, ev_msg):
 
         msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
         ch.dump_message(msg, exclusion_list=[cli])
+        eventmgr_core.dispatch('channel message', {
+            'source': cli.hostmask,
+            'target': ch.name,
+            'message': message,
+        })
 
 @eventmgr_rfc1459.message('NOTICE', min_params=2)
 def m_NOTICE(cli, ev_msg):
