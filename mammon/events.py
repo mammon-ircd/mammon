@@ -236,8 +236,9 @@ def m_PRIVMSG(cli, ev_msg):
             msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[cli_tg.nickname, message])
             cli_tg.dump_message(msg)
             eventmgr_core.dispatch('client message', {
-                'source': cli.hostmask,
-                'target': target,
+                'source': cli,
+                'target': cli_tg,
+                'target_name': target,
                 'message': message,
             })
             continue
@@ -254,8 +255,9 @@ def m_PRIVMSG(cli, ev_msg):
         msg = RFC1459Message.from_data('PRIVMSG', source=cli.hostmask, params=[ch.name, message])
         ch.dump_message(msg, exclusion_list=[cli])
         eventmgr_core.dispatch('channel message', {
-            'source': cli.hostmask,
-            'target': ch.name,
+            'source': cli,
+            'target': ch,
+            'target_name': target,
             'message': message,
         })
 

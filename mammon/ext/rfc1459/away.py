@@ -62,16 +62,6 @@ def m_away_notify(cli):
 @eventmgr_core.handler('client message')
 def m_away_response(info):
     ctx = get_context()
-    target = ctx.clients.get(info['target'], None)
-    if not target:
-        return
-
-    awaymsg = target.metadata.get('away', None)
-    if not awaymsg:
-        return
-
-    source = ctx.clients.get(UserHost(info['source']).nickname, None)
-    if not source:
-        return
-
-    source.dump_numeric('301', [info['target'], awaymsg])
+    awaymsg = info['target'].metadata.get('away', None)
+    if awaymsg:
+        info['source'].dump_numeric('301', [info['target_name'], awaymsg])
