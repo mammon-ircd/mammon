@@ -24,7 +24,6 @@ def get_context():
     return running_context
 
 from . import core
-from . import metadata
 from .config import ConfigHandler
 from .hashing import HashHandler
 from .utility import CaseInsensitiveDict, ExpiringDict
