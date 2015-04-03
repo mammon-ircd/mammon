@@ -103,7 +103,7 @@ Options:
    --help              - This screen.
    --debug             - Enable debug verbosity
    --nofork            - Do not fork into background
-   --config config     - A JSON configuration file to parse
+   --config config     - A YAML configuration file to parse
    --list-hashes       - List the supported hashes for passwords
    --mkpasswd          - Return hashed password, to put into config files""".format(cmd))
         exit(1)
