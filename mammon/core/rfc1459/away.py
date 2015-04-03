@@ -25,35 +25,36 @@ cap_away_notify = Capability('away-notify')
 
 @eventmgr_rfc1459.message('AWAY')
 def m_AWAY(cli, ev_msg):
-    notify = True
+    message = None
 
     # set away
     if len(ev_msg['params']):
         message = ev_msg['params'][0]
-        cli.metadata['away'] = message
 
+    eventmgr_core.dispatch('client away', {
+        'source': cli,
+        'away': message
+    })
+
+@eventmgr_core.handler('client away', priority=1)
+def m_away_process(info):
+    # away
+    if info['away']:
+        cli.metadata['away'] = info['away']
         cli.dump_numeric('306', ['You have been marked as being away'])
 
-        params = [message]
-
     # unaway
-    else:
-        if 'away' in cli.metadata:
-            try:
-                del cli.metadata['away']
-            except KeyError:
-                pass
-        else:
-            notify = False
-
+    elif 'away' in cli.metadata:
         cli.dump_numeric('305', ['You are no longer marked as being away'])
+        del cli.metadata['away']
 
-    # away-notify propogate message
-    if notify:
-        eventmgr_core.dispatch('client away', cli)
+    # XXX - was already not away - do nothing and sink the event once supported
+    else:
+        pass
 
-@eventmgr_core.handler('client away')
-def m_away_notify(cli):
+@eventmgr_core.handler('client away', priority=10)
+def m_away_notify(info):
+    cli = info['source']
     params = cli.metadata.get('away', None)
     if params:
         params = [params]
@@ -62,7 +63,6 @@ def m_away_notify(cli):
 
 @eventmgr_core.handler('client message')
 def m_away_response(info):
-    ctx = get_context()
     awaymsg = info['target'].metadata.get('away', None)
     if awaymsg:
         info['source'].dump_numeric('301', [info['target_name'], awaymsg])
