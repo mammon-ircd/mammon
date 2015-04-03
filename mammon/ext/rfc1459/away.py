@@ -16,13 +16,15 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from ircreactor.envelope import RFC1459Message
-from mammon.server import eventmgr_rfc1459
+from mammon.server import eventmgr_core, eventmgr_rfc1459
 from mammon.capability import Capability
 
 cap_away_notify = Capability('away-notify')
 
 @eventmgr_rfc1459.message('AWAY')
 def m_AWAY(cli, ev_msg):
+    notify = True
+
     # set away
     if len(ev_msg['params']):
         message = ev_msg['params'][0]
@@ -34,23 +36,25 @@ def m_AWAY(cli, ev_msg):
 
     # unaway
     else:
-        notify = False
-        try:
-            if 'away' in cli.metadata:
+        if 'away' in cli.metadata:
+            try:
                 del cli.metadata['away']
-                notify = True
-        except KeyError:
-            pass
+            except KeyError:
+                pass
+        else:
+            notify = False
 
         cli.dump_numeric('305', ['You are no longer marked as being away'])
 
-        # if away wasn't set, and was 'unset', don't notify other users
-        if notify:
-            params = None
-        else:
-            return
-
     # away-notify propogate message
+    if notify:
+        eventmgr_core.dispatch('client away', cli)
+
+@eventmgr_core.handler('client away')
+def m_away_notify(cli):
+    params = cli.metadata.get('away', None)
+    if params:
+        params = [params]
     msg = RFC1459Message.from_data('AWAY', source=cli.hostmask, params=params)
     cli.sendto_common_peers(msg, exclude=[cli], cap='away-notify')
 
