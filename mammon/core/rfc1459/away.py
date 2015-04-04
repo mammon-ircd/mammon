@@ -38,6 +38,8 @@ def m_AWAY(cli, ev_msg):
 
 @eventmgr_core.handler('client away', priority=1)
 def m_away_process(info):
+    cli = info['source']
+
     # away
     if info['away']:
         cli.metadata['away'] = info['away']
