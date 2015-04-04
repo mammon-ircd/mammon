@@ -311,6 +311,9 @@ def m_WHOIS(cli, ev_msg):
         cli.dump_numeric('313', [cli_tg.nickname, cli_tg.role.whois_line])
     if cli_tg.account:
         cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
+    awaymsg = cli_tg.metadata.get('away', None)
+    if awaymsg:
+        cli.dump_numeric('301', [cli_tg.nickname, awaymsg])
     cli.dump_numeric('317', [cli_tg.nickname, cli_tg.idle_time, cli_tg.registration_ts, 'seconds idle, signon time'])
     cli.dump_numeric('318', [cli_tg.nickname, 'End of /WHOIS list.'])
 
