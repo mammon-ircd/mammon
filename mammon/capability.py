@@ -95,7 +95,7 @@ def m_CAP_REQ(cli, ev_msg):
     cap_del = []
     args = ev_msg['params'][1]
 
-    def send_NAK(cli):
+    def dump_NAK(cli):
         cli.dump_numeric('CAP', ['NAK', args + ' '])
 
     for arg in args.split():
@@ -136,7 +136,7 @@ def m_CAP_ACK(cli, ev_msg):
     cap_del = []
     args = ev_msg['params'][1]
 
-    def send_NAK(cli):
+    def dump_NAK(cli):
         cli.dump_numeric('CAP', ['NAK', args + ' '])
 
     # sanity check the ACK, send NAK if it makes no sense
@@ -153,7 +153,7 @@ def m_CAP_ACK(cli, ev_msg):
         if negate:
             cap = caplist[arg]
             if cap.sticky:
-                send_NAK(cli)
+                dump_NAK(cli)
                 return
             continue
 
