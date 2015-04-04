@@ -317,7 +317,15 @@ class ClientProtocol(asyncio.Protocol):
         [i.dump_message(message) for i in peerlist]
 
     def dump_isupport(self):
-        isupport_tokens = {'NETWORK': self.ctx.conf.network, 'CLIENTVER': '3.2', 'CASEMAPPING': 'ascii', 'CHARSET': 'utf-8', 'SAFELIST': True, 'METADATA': self.ctx.conf.metadata.get('limit', True)}
+        isupport_tokens = {
+            'NETWORK': self.ctx.conf.network,
+            'CLIENTVER': '3.2',
+            'CASEMAPPING': 'ascii',
+            'CHARSET': 'utf-8',
+            'SAFELIST': True,
+            'METADATA': self.ctx.conf.metadata.get('limit', True),
+            'CHANTYPES': '#',
+        }
 
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
