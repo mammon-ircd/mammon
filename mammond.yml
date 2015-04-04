@@ -136,6 +136,13 @@ metadata:
     # - spammer_probability
 
 
+# Monitor defines the monitoring users are allowed to do on other users
+monitor:
+  # limit - max number of 'monitors' each target is allowed to have
+  #   comment out to remove limit
+  limit: 20
+
+
 # Operator credentials allow a user to transition from a typical user role
 # to a privileged role.
 opers:

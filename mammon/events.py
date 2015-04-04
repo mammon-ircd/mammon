@@ -36,9 +36,12 @@ class EventManager(EventManagerBase):
             return func
         return wrapped_fn
 
-    def handler(self, message, priority=10):
+    def handler(self, messages, priority=10):
+        if not isinstance(messages, (list, tuple)):
+            messages = [messages]
         def parent_fn(func):
-            self.register(message, func, priority=priority)
+            for message in messages:
+                self.register(message, func, priority=priority)
             return func
         return parent_fn
 

@@ -223,11 +223,22 @@ class ClientProtocol(asyncio.Protocol):
         return st
 
     def kill(self, source, reason):
+        eventmgr_core.dispatch('client killed', {
+            'source': source,
+            'client': self,
+            'reason': reason,
+        })
+
         m = RFC1459Message.from_data('KILL', source=source.hostmask, params=[self.nickname, reason])
         self.dump_message(m)
         self.quit('Killed ({source} ({reason}))'.format(source=source.nickname, reason=reason))
 
     def quit(self, message):
+        eventmgr_core.dispatch('client quit', {
+            'client': self,
+            'message': message,
+        })
+
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
         self.sendto_common_peers(m)
         self.exit()
@@ -324,6 +335,7 @@ class ClientProtocol(asyncio.Protocol):
             'CHARSET': 'utf-8',
             'SAFELIST': True,
             'METADATA': self.ctx.conf.metadata.get('limit', True),
+            'MONITOR': self.ctx.conf.monitor.get('limit', True),
             'CHANTYPES': '#',
         }
 
@@ -355,3 +367,7 @@ class ClientProtocol(asyncio.Protocol):
         # XXX - LUSERS isn't implemented.
         # self.handle_side_effect('LUSERS')
         self.handle_side_effect('MOTD')
+
+        eventmgr_core.dispatch('client connect', {
+            'client': self,
+        })

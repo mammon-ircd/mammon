@@ -18,3 +18,4 @@
 # - - - BUILTIN IRCV3 EVENTS - - -
 
 from . import metadata
+from . import monitor
