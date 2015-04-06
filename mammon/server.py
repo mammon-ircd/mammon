@@ -163,7 +163,7 @@ Options:
         self.load_modules()
 
     def open_listeners(self):
-        [self.eventloop.create_task(lstn) for lstn in self.listeners]
+        [asyncio.async(lstn) for lstn in self.listeners]
 
     def load_module(self, mod):
         try:
