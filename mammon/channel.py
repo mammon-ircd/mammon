@@ -16,7 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from ircreactor.envelope import RFC1459Message
-from .utility import validate_chan, CaseInsensitiveDict
+from .utility import validate_chan, CaseInsensitiveDict, CaseInsensitiveList
 from .property import member_property_items
 
 class ChannelManager(object):
@@ -73,7 +73,7 @@ class Channel(object):
         self.topic_setter = str()
         self.topic_ts = 0
         self.props = CaseInsensitiveDict()
-        self.user_set_metadata = []
+        self.user_set_metadata = CaseInsensitiveList()
         self.metadata = CaseInsensitiveDict()
 
     def authorize(self, cli, ev_msg):

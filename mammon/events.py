@@ -19,7 +19,6 @@ import logging
 from functools import wraps
 
 from ircreactor.events import EventManager as EventManagerBase
-from . import server
 
 class EventManager(EventManagerBase):
     """
@@ -40,7 +39,7 @@ class EventManager(EventManagerBase):
     def _handle_checker(self, func, local_client=None):
         def parent_handler(info, *args):
             if local_client:
-                ctx = server.get_context()
+                ctx = get_context()
                 client = info[local_client]
                 if client.servername != ctx.conf.name:
                     return

@@ -15,6 +15,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+from mammon.utility import CaseInsensitiveList
+
 default_whois_format = 'is a {role}.'
 default_vowel_whois_format = 'is an {role}.'
 
@@ -42,6 +44,9 @@ class Role:
             if key not in self.metakeys_set:
                 self.metakeys_set.append(key)
         del self.metakeys_access
+
+        self.metakeys_get = CaseInsensitiveList(self.metakeys_get)
+        self.metakeys_set = CaseInsensitiveList(self.metakeys_set)
 
         # automatically choose a/an for whois message
         if self.whois_format is None:

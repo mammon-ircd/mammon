@@ -195,6 +195,52 @@ class ExpiringDict(collections.OrderedDict):
     def viewvalues(self):
         raise NotImplementedError()
 
+# just a custom casefolding list, designed for things like lists of keys
+class CaseInsensitiveList(collections.MutableSequence):
+    @staticmethod
+    def _check_value(value):
+        if not isinstance(value, object):
+           raise TypeError()
+
+    def __init__(self, data=None):
+        self.__store = []
+
+        if data:
+            self.extend(data)
+
+    def __getitem__(self, key):
+        # try:except is here so iterating works properly
+        try:
+            return self.__store[key]
+        except KeyError:
+            raise IndexError
+
+    def __setitem__(self, key, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self.__checkValue(value)
+        self.__store[key] = value
+
+    def __delitem__(self, key):
+        del self.__store[key]
+
+    def __len__(self):
+        return len(self.__store)
+
+    def insert(self, key, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self._check_value(value)
+        self.__store.insert(key, value)
+
+    def __contains__(self, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        return value in self.__store
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 import string

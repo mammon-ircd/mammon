@@ -17,7 +17,7 @@
 
 from mammon.client import ClientProtocol
 from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
-from mammon.utility import validate_nick, validate_chan, CaseInsensitiveDict
+from mammon.utility import validate_nick, validate_chan, CaseInsensitiveDict, CaseInsensitiveList
 
 monitored = CaseInsensitiveDict()
 

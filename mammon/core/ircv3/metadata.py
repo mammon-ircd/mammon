@@ -17,9 +17,9 @@
 
 import string
 
-from mammon.server import eventmgr_core
-from mammon.server import eventmgr_rfc1459
+from mammon.server import eventmgr_core, eventmgr_rfc1459
 from mammon.capability import Capability
+from mammon.utility import CaseInsensitiveList
 
 # XXX - add to MONITOR system when implemented
 # cap_metadata_notify = Capability('metadata-notify')
@@ -131,25 +131,24 @@ def metadata_SET(cli, ev_msg, target_name, target):
 
     # set / unset key
     args = [target_name, key, visibility]
-    key_slug = key.casefold()
 
     if value is None:
         try:
-            target.user_set_metadata.remove(key_slug)
+            target.user_set_metadata.remove(key)
             del target.metadata[key]
         except KeyError:
             pass
 
     else:
         # if setting a new, non-restricted key, take metadata limits into account
-        if key_slug not in target.user_set_metadata and key_slug not in restricted_keys:
+        if key not in target.user_set_metadata and key not in restricted_keys:
             limit = cli.ctx.conf.metadata.get('limit', None)
             if limit is not None:
                 if len(target.user_set_metadata) + 1 > limit:
                     cli.dump_numeric('764', [target_name, 'metadata limit reached'])
                     return
 
-            target.user_set_metadata.append(key_slug)
+            target.user_set_metadata.append(key)
         target.metadata[key] = value
         args.append(value)
 
@@ -175,13 +174,13 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         # we check keys here because even if a user is clearing their own METADATA,
         #   there may be admin / oper-only / server keys which should not be cleared
         visibility = '*'
-        if key_slug in restricted_keys:
+        if key in restricted_keys:
             # user cannot see key at all, this is likely a server / oper-only key
             #   so we're not going to even tell them it exists
-            if key_slug not in viewable_keys:
+            if key not in viewable_keys:
                 continue
 
-            elif cli.role and key_slug in cli.role.metakeys_set:
+            elif cli.role and key in cli.role.metakeys_set:
                 visibility = 'server:restricted'
 
             # if they don't have permission to edit this specific key, just ignore it
@@ -194,7 +193,7 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
             target.metadata[key]
         except KeyError:
             pass
-        target.user_set_metadata.remove(key_slug)
+        target.user_set_metadata.remove(key)
         cli.dump_numeric('761', [target_name, key, visibility])
 
     cli.dump_numeric('762', ['end of metadata'])
