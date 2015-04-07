@@ -241,6 +241,10 @@ class CaseInsensitiveList(collections.MutableSequence):
 
         return value in self.__store
 
+    def __add__(self, other):
+        self.extend(other)
+        return self
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 import string

@@ -17,7 +17,7 @@
 
 import string
 
-from mammon.server import eventmgr_core, eventmgr_rfc1459
+from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
 from mammon.utility import CaseInsensitiveList
 
@@ -129,18 +129,10 @@ def metadata_SET(cli, ev_msg, target_name, target):
         cli.dump_numeric('769', [target_name, key, 'permission denied'])
         return
 
-    # set / unset key
-    args = [target_name, key, visibility]
-
-    if value is None:
-        try:
-            target.user_set_metadata.remove(key)
-            del target.metadata[key]
-        except KeyError:
-            pass
-
-    else:
-        # if setting a new, non-restricted key, take metadata limits into account
+    # if setting a new, non-restricted key, take metadata limits into account
+    # NOTE: we check these here instead of in dispatch handler because we should only
+    #   throw valid events, makes more sense to check it before we send the event
+    if value:
         if key not in target.user_set_metadata and key not in restricted_keys:
             limit = cli.ctx.conf.metadata.get('limit', None)
             if limit is not None:
@@ -148,13 +140,16 @@ def metadata_SET(cli, ev_msg, target_name, target):
                     cli.dump_numeric('764', [target_name, 'metadata limit reached'])
                     return
 
-            target.user_set_metadata.append(key)
-        target.metadata[key] = value
-        args.append(value)
-
-    cli.dump_numeric('761', args)
-
-    cli.dump_numeric('762', ['end of metadata'])
+    # throw change
+    info = {
+        'key': key,
+        'value': value,
+        'source': cli,
+        'target': target,
+        'target_name': target_name,
+        'visibility': visibility,
+    }
+    eventmgr_core.dispatch('metadata set', info)
 
 def metadata_CLEAR(cli, ev_msg, target_name, target):
     # check user has permission for target
@@ -163,10 +158,11 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         return
 
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+    viewable_keys = CaseInsensitiveList()
     if cli.role:
-        viewable_keys = restricted_keys + cli.role.metakeys_get + cli.role.metakeys_set
-    else:
-        viewable_keys = []
+        viewable_keys += restricted_keys + cli.role.metakeys_get + cli.role.metakeys_set
+
+    key_list = {}
 
     for key, data in dict(target.metadata).items():
         # XXX - make sure user has perms to clear keys via channel ACL
@@ -184,19 +180,21 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
                 visibility = 'server:restricted'
 
             # if they don't have permission to edit this specific key, just ignore it
-            #   maybe the spec should say throw an ERR_KEYNOPERMISSION here?
             else:
                 continue
 
-        # and clear the key
-        try:
-            target.metadata[key]
-        except KeyError:
-            pass
-        target.user_set_metadata.remove(key)
-        cli.dump_numeric('761', [target_name, key, visibility])
+        key_list[key] = {
+            'visibility': visibility,
+        }
 
-    cli.dump_numeric('762', ['end of metadata'])
+    # throw change
+    info = {
+        'source': cli,
+        'target': target,
+        'target_name': target_name,
+        'keys': key_list,
+    }
+    eventmgr_core.dispatch('metadata clear', info)
 
 metadata_subcommands = {
     'get': metadata_GET,
@@ -227,3 +225,61 @@ def m_METADATA(cli, ev_msg):
         metadata_subcommands[command](cli, ev_msg, target_name, target)
     else:
         cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+
+def set_key(target, key, value=None):
+    ctx = get_context()
+
+    # clearing key
+    if value is None:
+        try:
+            del target.metadata[key]
+            target.user_set_metadata.remove(key)
+        except (KeyError, ValueError):
+            pass
+
+    # setting key
+    else:
+        target.metadata[key] = value
+
+        restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
+        if key not in target.user_set_metadata and key not in restricted_keys:
+            target.user_set_metadata.append(key)
+
+        target.metadata[key] = value
+
+@eventmgr_core.handler('metadata clear', priority=1)
+def m_metadata_clear(info):
+    ctx = get_context()
+
+    source = info['source']
+    target = info['target']
+    target_name = info['target_name']
+    keys = info['keys']
+
+    for key, kinfo in keys.items():
+        set_key(target, key)
+        if source.servername == ctx.conf.name:
+            args = [target_name, key, kinfo['visibility']]
+            source.dump_numeric('761', args)
+
+    if source.servername == ctx.conf.name:
+        source.dump_numeric('762', ['end of metadata'])
+
+@eventmgr_core.handler('metadata set', priority=1)
+def m_metadata_set(info):
+    ctx = get_context()
+
+    source = info['source']
+    key = info['key']
+    value = info['value']
+
+    args = [info['target_name'], key, info['visibility']]
+    if value:
+        args.append(value)
+
+    set_key(info['target'], key, value)
+
+    # if local client, dump numerics
+    if source.servername == ctx.conf.name:
+        source.dump_numeric('761', args)
+        source.dump_numeric('762', ['end of metadata'])
