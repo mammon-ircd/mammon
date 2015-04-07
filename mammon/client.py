@@ -46,12 +46,15 @@ class ClientProtocol(asyncio.Protocol):
         self.ctx = get_context()
 
         self.peername = transport.get_extra_info('peername')
+        if self.peername[0][0] == ':':
+            self.peername[0] = '0' + self.peername[0]
+
         self.transport = transport
         self.recvq = list()
         self.channels = list()
         self.nickname = '*'
         self.username = str()
-        self.hostname = self.peername[0]  # XXX - handle rdns...
+        self.hostname = self.peername[0]
         self.realaddr = self.peername[0]
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
