@@ -317,7 +317,7 @@ class ClientProtocol(asyncio.Protocol):
         msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
         self.dump_message(msg)
 
-    def sendto_common_peers(self, message, exclude=[], cap=None):
+    def get_common_peers(self, exclude=[], cap=None):
         if cap:
             base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude and cap in i.client.caps] + [self]
         else:
@@ -325,7 +325,15 @@ class ClientProtocol(asyncio.Protocol):
         peerlist = uniq(base)
         if self in exclude:
             peerlist.remove(self)
+        return peerlist
+
+    def sendto_common_peers(self, message, **kwargs):
+        peerlist = self.get_common_peers(**kwargs)
         [i.dump_message(message) for i in peerlist]
+
+    def numericto_common_peers(self, numeric, params, **kwargs):
+        peerlist = self.get_common_peers(**kwargs)
+        [i.dump_numeric(numeric, params) for i in peerlist]
 
     def dump_isupport(self):
         isupport_tokens = {

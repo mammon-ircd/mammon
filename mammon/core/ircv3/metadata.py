@@ -21,8 +21,9 @@ from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
 from mammon.utility import CaseInsensitiveList
 
-# XXX - add to MONITOR system when implemented
-# cap_metadata_notify = Capability('metadata-notify')
+from . import monitor
+
+cap_metadata_notify = Capability('metadata-notify')
 
 metadata_key_allowed_chars = string.ascii_letters + string.digits + '_.:'
 metadata_key_allowed_chars_tbl = str.maketrans('', '', metadata_key_allowed_chars)
@@ -247,20 +248,49 @@ def set_key(target, key, value=None):
 
         target.metadata[key] = value
 
+def get_monitor_list(source, target):
+    monitor_list = monitor.monitored.get(target, [])
+    monitor_list += target.get_common_peers(exclude=monitor_list + source, cap='metadata-notify')
+    return monitor_list
+
+def dump_metadata_notify(source, target, key, args, monitor_list=None, restricted_keys=None):
+    if monitor_list is None:
+        monitor_list = get_monitor_list(source, target)
+
+    if restricted_keys is None:
+        ctx = get_context()
+        restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
+
+    for cli in monitor_list:
+        if key in restricted_keys and (not cli.role or key not in cli.role.metakeys_get):
+            continue
+        if cli == source or cli == target:
+            continue
+        if cli.servername == ctx.conf.name:
+            cli.dump_numeric('761', args)
+
 @eventmgr_core.handler('metadata clear', priority=1)
 def m_metadata_clear(info):
     ctx = get_context()
+    restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
 
     source = info['source']
     target = info['target']
     target_name = info['target_name']
     keys = info['keys']
 
+    monitor_list = get_monitor_list(source, target)
+
     for key, kinfo in keys.items():
         set_key(target, key)
+
         if source.servername == ctx.conf.name:
             args = [target_name, key, kinfo['visibility']]
             source.dump_numeric('761', args)
+
+        # sendto monitoring clients
+        dump_metadata_notify(source, target, key, args, monitor_list=monitor_list,
+                             restricted_keys=restricted_keys)
 
     if source.servername == ctx.conf.name:
         source.dump_numeric('762', ['end of metadata'])
@@ -283,3 +313,6 @@ def m_metadata_set(info):
     if source.servername == ctx.conf.name:
         source.dump_numeric('761', args)
         source.dump_numeric('762', ['end of metadata'])
+
+    # sendto monitoring clients
+    dump_metadata_notify(source, target, key, args)
