@@ -219,7 +219,7 @@ class CaseInsensitiveList(collections.MutableSequence):
         if isinstance(value, str):
             value = value.casefold()
 
-        self.__checkValue(value)
+        self._check_value(value)
         self.__store[key] = value
 
     def __delitem__(self, key):
