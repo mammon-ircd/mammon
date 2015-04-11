@@ -300,6 +300,7 @@ def m_metadata_set(info):
     ctx = get_context()
 
     source = info['source']
+    target = info['target']
     key = info['key']
     value = info['value']
 
@@ -307,7 +308,7 @@ def m_metadata_set(info):
     if value:
         args.append(value)
 
-    set_key(info['target'], key, value)
+    set_key(target, key, value)
 
     # if local client, dump numerics
     if source.servername == ctx.conf.name:

@@ -37,6 +37,7 @@ class EventManager(EventManagerBase):
         return wrapped_fn
 
     def _handle_checker(self, func, local_client=None):
+        from .server import get_context
         def parent_handler(info, *args):
             if local_client:
                 ctx = get_context()
