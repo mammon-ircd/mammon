@@ -197,7 +197,11 @@ class ClientProtocol(asyncio.Protocol):
 
     def dump_notice(self, message):
         "Dump a NOTICE to a connected client."
-        msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=[self.nickname, '*** ' + message])
+        self.dump_verb('NOTICE', params=[self.nickname, '*** ' + message])
+
+    def dump_verb(self, verb, params):
+        """Dump a verb to a connected client."""
+        msg = RFC1459Message.from_data(verb, source=self.ctx.conf.name, params=params)
         self.dump_message(msg)
 
     @property

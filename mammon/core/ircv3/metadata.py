@@ -267,7 +267,7 @@ def dump_metadata_notify(source, target, key, args, monitor_list=None, restricte
         if cli == source or cli == target:
             continue
         if cli.servername == ctx.conf.name:
-            cli.dump_numeric('761', args)
+            cli.dump_verb('METADATA', args)
 
 @eventmgr_core.handler('metadata clear', priority=1)
 def m_metadata_clear(info):
@@ -284,8 +284,9 @@ def m_metadata_clear(info):
     for key, kinfo in keys.items():
         set_key(target, key)
 
+        args = [target_name, key, kinfo['visibility']]
+
         if source.servername == ctx.conf.name:
-            args = [target_name, key, kinfo['visibility']]
             source.dump_numeric('761', args)
 
         # sendto monitoring clients
