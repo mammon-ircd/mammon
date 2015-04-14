@@ -349,6 +349,9 @@ def m_metadata_set(info):
 
 @eventmgr_core.handler('cap set', priority=1, local_client='client')
 def m_metadata_cap_notify(info):
+    if 'metadata-notify' not in info['caps']:
+        return
+
     cli = info['client']
     for key, visibility in get_visible_keys(cli, cli):
         cli.dump_verb('METADATA', [cli.nickname, key, visibility])
@@ -359,3 +362,16 @@ def m_metadata_cap_notify(info):
             if target:
                 for key, visibility in get_visible_keys(cli, target):
                     cli.dump_verb('METADATA', [target.nickname, key, visibility])
+
+@eventmgr_core.handler('monitor +', priority=1, local_client='client')
+def m_metadata_monitor_target(info):
+    cli = info['client']
+
+    if 'metadata-notify' not in cli.caps:
+        return
+
+    for nickname in info['targets']:
+        target = cli.ctx.clients.get(nickname, None)
+        if target:
+            for key, visibility in get_visible_keys(cli, target):
+                cli.dump_verb('METADATA', [target.nickname, key, visibility])
