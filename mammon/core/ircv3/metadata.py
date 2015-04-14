@@ -249,8 +249,8 @@ def set_key(target, key, value=None):
         target.metadata[key] = value
 
 def get_monitor_list(source, target):
-    monitor_list = monitor.monitored.get(target, [])
-    monitor_list += target.get_common_peers(exclude=monitor_list + source, cap='metadata-notify')
+    monitor_list = monitor.monitored.get(target.nickname, [])
+    monitor_list += target.get_common_peers(exclude=monitor_list+[source], cap='metadata-notify')
     return monitor_list
 
 def dump_metadata_notify(source, target, key, args, monitor_list=None, restricted_keys=None):
@@ -269,7 +269,7 @@ def dump_metadata_notify(source, target, key, args, monitor_list=None, restricte
         if cli.servername == ctx.conf.name:
             cli.dump_verb('METADATA', args)
 
-@eventmgr_core.handler('metadata clear', priority=1)
+@eventmgr_core.handler('metadata clear', priority=1, local_client='source')
 def m_metadata_clear(info):
     ctx = get_context()
     restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
@@ -281,20 +281,38 @@ def m_metadata_clear(info):
 
     monitor_list = get_monitor_list(source, target)
 
+    # we dump numerics to the source here instead of in the 'delete' event
+    #   below so the 'end of metadata' numeric gets put in the right place
     for key, kinfo in keys.items():
-        set_key(target, key)
+        visibility = kinfo['visibility']
 
-        args = [target_name, key, kinfo['visibility']]
+        args = [target_name, key, visibility]
+        source.dump_numeric('761', args)
 
-        if source.servername == ctx.conf.name:
-            source.dump_numeric('761', args)
+        # create event to actually remove key and dump notify
+        info = {
+            'key': key,
+            'source': source,
+            'target': target,
+            'target_name': target_name,
+            'visibility': visibility,
+        }
+        eventmgr_core.dispatch('metadata delete', info)
 
-        # sendto monitoring clients
-        dump_metadata_notify(source, target, key, args, monitor_list=monitor_list,
-                             restricted_keys=restricted_keys)
+    source.dump_numeric('762', ['end of metadata'])
 
-    if source.servername == ctx.conf.name:
-        source.dump_numeric('762', ['end of metadata'])
+@eventmgr_core.handler('metadata delete', priority=1)
+def m_metadata_delete(info):
+    key = info['key']
+    source = info['source']
+    target = info['target']
+    target_name = info['target_name']
+    visibility = info['visibility']
+
+    set_key(target, key)
+
+    args = [target_name, key, visibility]
+    dump_metadata_notify(source, target, key, args)
 
 @eventmgr_core.handler('metadata set', priority=1)
 def m_metadata_set(info):
