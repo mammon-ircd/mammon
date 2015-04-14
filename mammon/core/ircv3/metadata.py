@@ -387,3 +387,13 @@ def m_metadata_monitor_chanjoin(info):
 
     for key, visibility in get_visible_keys(cli, ch):
         cli.dump_verb('METADATA', [ch.name, key, visibility])
+
+@eventmgr_core.handler('channel part', priority=2)
+def m_metadata_monitor_chanpart(info):
+    cli = info['client']
+    ch = info['channel']
+
+    try:
+        cli.monitoring.remove(ch.name)
+    except ValueError:
+        pass
