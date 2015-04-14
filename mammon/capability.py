@@ -124,10 +124,30 @@ def m_CAP_REQ(cli, ev_msg):
     cli.dump_numeric('CAP', ['ACK', ' '.join(cap_add) + ' -'.join(cap_del) + ' '])
 
     # we accepted the changeset, so apply it
-    for cap in cap_add:
+    info = {
+        'client': cli,
+        'caps': cap_add,
+    }
+    eventmgr_core.dispatch('cap add', info)
+
+    info = {
+        'client': cli,
+        'caps': cap_del,
+    }
+    eventmgr_core.dispatch('cap del', info)
+
+@eventmgr_core.handler('cap add', priority=1)
+def m_cap_add(info):
+    cli = info['client']
+
+    for cap in info['caps']:
         cli.caps[cap] = caplist[cap]
 
-    for cap in cap_del:
+@eventmgr_core.handler('cap del', priority=1)
+def m_cap_del(info):
+    cli = info['client']
+
+    for cap in info['caps']:
         cli.caps.pop(cap)
 
 # XXX: implement CAP ACK for real if it becomes necessary (nothing uses it)
