@@ -383,7 +383,7 @@ def m_metadata_monitor_chanjoin(info):
     # we don't check metadata-notify here because they should be auto-subscribed
     #   for when they enable metadata-notify anyway
 
-    client.monitoring.append(ch.name)
+    cli.monitoring.append(ch.name)
 
     for key, visibility in get_visible_keys(cli, ch):
         cli.dump_verb('METADATA', [ch.name, key, visibility])
