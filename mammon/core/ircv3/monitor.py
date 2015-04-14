@@ -28,10 +28,6 @@ def m_MONITOR(cli, ev_msg):
     command = ev_msg['params'][0].casefold()
 
     if command in valid_metadata_subcommands:
-        # XXX - dumb hack until properties arrives
-        if not hasattr(cli, 'monitoring'):
-            cli.monitoring = []
-
         info = {
             'client': cli,
             'command': command,

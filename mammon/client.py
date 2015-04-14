@@ -59,6 +59,7 @@ class ClientProtocol(asyncio.Protocol):
         self.user_set_metadata = CaseInsensitiveList()
         self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
+        self.monitoring = CaseInsensitiveList()
 
         self.away_message = str()
         self._role_name = None

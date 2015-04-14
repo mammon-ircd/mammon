@@ -356,12 +356,11 @@ def m_metadata_cap_notify(info):
     for key, visibility in get_visible_keys(cli, cli):
         cli.dump_verb('METADATA', [cli.nickname, key, visibility])
 
-    if hasattr(cli, monitoring):
-        for nickname in cli.monitoring:
-            target = cli.ctx.clients.get(nickname, None)
-            if target:
-                for key, visibility in get_visible_keys(cli, target):
-                    cli.dump_verb('METADATA', [target.nickname, key, visibility])
+    for nickname in cli.monitoring:
+        target = cli.ctx.clients.get(nickname, None)
+        if target:
+            for key, visibility in get_visible_keys(cli, target):
+                cli.dump_verb('METADATA', [target.nickname, key, visibility])
 
 @eventmgr_core.handler('monitor +', priority=1, local_client='client')
 def m_metadata_monitor_target(info):
@@ -375,3 +374,13 @@ def m_metadata_monitor_target(info):
         if target:
             for key, visibility in get_visible_keys(cli, target):
                 cli.dump_verb('METADATA', [target.nickname, key, visibility])
+
+@eventmgr_core.handler('channel join', priority=2)
+def m_metadata_monitor_chanjoin(info):
+    cli = info['client']
+    ch = info['channel']
+
+    client.monitoring.append(ch.name)
+
+    for key, visibility in get_visible_keys(cli, ch):
+        cli.dump_verb('METADATA', [ch.name, key, visibility])
