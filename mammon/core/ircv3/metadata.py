@@ -19,7 +19,7 @@ import string
 
 from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
-from mammon.utility import CaseInsensitiveList
+from mammon.utility import CaseInsensitiveDict, CaseInsensitiveList
 
 from . import monitor
 
@@ -197,16 +197,21 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
     }
     eventmgr_core.dispatch('metadata clear', info)
 
-metadata_subcommands = {
+metadata_cmds = {
     'get': metadata_GET,
     'list': metadata_LIST,
     'set': metadata_SET,
     'clear': metadata_CLEAR,
 }
+metadata_cmds = CaseInsensitiveDict(**metadata_cmds)
 
 @eventmgr_rfc1459.message('METADATA', min_params=2)
 def m_METADATA(cli, ev_msg):
-    target_name, command = ev_msg['params'][:2]
+    target_name, subcmd = ev_msg['params'][:2]
+
+    if subcmd not in metadata_cmds:
+        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+        return
 
     # get target
     if target_name == '*':
@@ -220,12 +225,7 @@ def m_METADATA(cli, ev_msg):
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
 
-    command = command.casefold()
-
-    if command in metadata_subcommands:
-        metadata_subcommands[command](cli, ev_msg, target_name, target)
-    else:
-        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+    metadata_cmds[subcmd](cli, ev_msg, target_name, target)
 
 def set_key(target, key, value=None):
     ctx = get_context()
