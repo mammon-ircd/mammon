@@ -185,8 +185,29 @@ def m_PART(cli, ev_msg):
             cli.dump_numeric('442', [ch.name, "You're not on that channel"])
             return
 
-        ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=ev_msg['params']))
-        ch.part(cli)
+        if len(ev_msg['params']) > 1:
+            message = ev_msg['params'][1]
+        else:
+            message = ''
+
+        # part channel
+        info = {
+            'channel': ch,
+            'client': cli,
+            'message': message,
+        }
+        eventmgr_core.dispatch('channel part', info)
+
+@eventmgr_core.handler('channel part', priority=1)
+def m_join_channel(info):
+    ch = info['channel']
+    cli = info['client']
+    message = info['message']
+
+    ctx = get_context()
+
+    ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=[ch.name, message]))
+    ch.part(cli)
 
 @eventmgr_rfc1459.message('NAMES', min_params=1)
 def m_NAMES(cli, ev_msg):
