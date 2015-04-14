@@ -16,7 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from mammon.utility import CaseInsensitiveDict
-from mammon.events import eventmgr_rfc1459
+from mammon.events import eventmgr_core, eventmgr_rfc1459
 from ircreactor.envelope import RFC1459Message
 
 caplist = CaseInsensitiveDict()

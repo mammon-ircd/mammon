@@ -64,6 +64,19 @@ def metadata_GET(cli, ev_msg, target_name, target):
             cli.dump_numeric('766', [key, 'no matching keys'])
 
 def metadata_LIST(cli, ev_msg, target_name, target):
+    for key, visibility in get_visible_keys(cli, target):
+        args = [target_name, key, visibility]
+
+        data = target.metadata[key]
+        if isinstance(data, str):
+            args.append(data)
+
+        cli.dump_numeric('761', args)
+
+    cli.dump_numeric('762', ['end of metadata'])
+
+def get_visible_keys(cli, target):
+    visible_keys = []
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
 
     for key, data in target.metadata.items():
@@ -75,13 +88,10 @@ def metadata_LIST(cli, ev_msg, target_name, target):
             else:
                 continue
 
-        # return key
-        args = [target_name, key, visibility]
-        if isinstance(target.metadata[key], str):
-            args.append(data)
-        cli.dump_numeric('761', args)
+        # it's viewable!
+        visible_keys.append([key, visibility])
 
-    cli.dump_numeric('762', ['end of metadata'])
+    return visible_keys
 
 def metadata_SET(cli, ev_msg, target_name, target):
     if len(ev_msg['params']) > 2:
@@ -336,3 +346,16 @@ def m_metadata_set(info):
 
     # sendto monitoring clients
     dump_metadata_notify(source, target, key, args)
+
+@eventmgr_core.handler('cap set', priority=1, local_client='client')
+def m_metadata_cap_notify(info):
+    cli = info['client']
+    for key, visibility in get_visible_keys(cli, cli):
+        cli.dump_verb('METADATA', [cli.nickname, key, visibility])
+
+    if hasattr(cli, monitoring):
+        for nickname in cli.monitoring:
+            target = cli.ctx.clients.get(nickname, None)
+            if target:
+                for key, visibility in get_visible_keys(cli, target):
+                    cli.dump_verb('METADATA', [target.nickname, key, visibility])
