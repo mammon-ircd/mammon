@@ -18,6 +18,7 @@
 from ircreactor.envelope import RFC1459Message
 from .utility import validate_chan, CaseInsensitiveDict, CaseInsensitiveList
 from .property import member_property_items
+from .server import get_context
 
 class ChannelManager(object):
     def __init__(self, ctx):
@@ -110,10 +111,14 @@ class Channel(object):
             return True
         return self.has_member(client)
 
-    def dump_message(self, msg, exclusion_list=None):
+    def dump_message(self, msg, exclusion_list=None, local_only=True):
         if not exclusion_list:
             exclusion_list = list()
-        [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list]
+        if local_only:
+            ctx = get_context()
+            [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list and m.client.servername == ctx.conf.name]
+        else:
+            [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list]
 
     @property
     def classification(self):
@@ -122,7 +127,7 @@ class Channel(object):
         return '@'
 
 # --- rfc1459 channel management commands ---
-from .events import eventmgr_rfc1459
+from .events import eventmgr_core, eventmgr_rfc1459
 
 @eventmgr_rfc1459.message('JOIN', min_params=1, update_idle=True)
 def m_JOIN(cli, ev_msg):
@@ -138,13 +143,29 @@ def m_JOIN(cli, ev_msg):
         if not ch.authorize(cli, ev_msg):
             continue
 
-        ch.join(cli)
-        ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
+        # join channel
+        info = {
+            'channel': ch,
+            'client': cli,
+        }
+        eventmgr_core.dispatch('channel join', info)
 
-        if ch.topic:
-            cli.handle_side_effect('TOPIC', params=[ch.name])
+@eventmgr_core.handler('channel join', priority=1)
+def m_join_channel(info):
+    ch = info['channel']
+    cli = info['client']
+    ctx = get_context()
 
-        cli.handle_side_effect('NAMES', params=[ch.name])
+    ch.join(cli)
+    ch.dump_message(RFC1459Message.from_data('join', source=cli.hostmask, params=[ch.name]))
+
+    if cli.servername != ctx.conf.name:
+        return
+
+    if ch.topic:
+        cli.handle_side_effect('TOPIC', params=[ch.name])
+
+    cli.handle_side_effect('NAMES', params=[ch.name])
 
 @eventmgr_rfc1459.message('PART', min_params=1, update_idle=True)
 def m_PART(cli, ev_msg):
