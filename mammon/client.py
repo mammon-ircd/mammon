@@ -22,7 +22,7 @@ import copy
 
 from ircreactor.envelope import RFC1459Message
 from .channel import Channel
-from .utility import CaseInsensitiveDict, uniq
+from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from . import __version__
@@ -59,9 +59,10 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
         self.caps = CaseInsensitiveDict()
-        self.user_set_metadata = []
+        self.user_set_metadata = CaseInsensitiveList()
         self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
+        self.monitoring = CaseInsensitiveList()
 
         self.away_message = str()
         self._role_name = None
@@ -200,7 +201,11 @@ class ClientProtocol(asyncio.Protocol):
 
     def dump_notice(self, message):
         "Dump a NOTICE to a connected client."
-        msg = RFC1459Message.from_data('NOTICE', source=self.ctx.conf.name, params=[self.nickname, '*** ' + message])
+        self.dump_verb('NOTICE', params=[self.nickname, '*** ' + message])
+
+    def dump_verb(self, verb, params):
+        """Dump a verb to a connected client."""
+        msg = RFC1459Message.from_data(verb, source=self.ctx.conf.name, params=params)
         self.dump_message(msg)
 
     @property
@@ -226,11 +231,22 @@ class ClientProtocol(asyncio.Protocol):
         return st
 
     def kill(self, source, reason):
+        eventmgr_core.dispatch('client killed', {
+            'source': source,
+            'client': self,
+            'reason': reason,
+        })
+
         m = RFC1459Message.from_data('KILL', source=source.hostmask, params=[self.nickname, reason])
         self.dump_message(m)
         self.quit('Killed ({source} ({reason}))'.format(source=source.nickname, reason=reason))
 
     def quit(self, message):
+        eventmgr_core.dispatch('client quit', {
+            'client': self,
+            'message': message,
+        })
+
         m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
         self.sendto_common_peers(m)
         self.exit()
@@ -309,7 +325,7 @@ class ClientProtocol(asyncio.Protocol):
         msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
         self.dump_message(msg)
 
-    def sendto_common_peers(self, message, exclude=[], cap=None):
+    def get_common_peers(self, exclude=[], cap=None):
         if cap:
             base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude and cap in i.client.caps] + [self]
         else:
@@ -317,7 +333,15 @@ class ClientProtocol(asyncio.Protocol):
         peerlist = uniq(base)
         if self in exclude:
             peerlist.remove(self)
+        return peerlist
+
+    def sendto_common_peers(self, message, **kwargs):
+        peerlist = self.get_common_peers(**kwargs)
         [i.dump_message(message) for i in peerlist]
+
+    def numericto_common_peers(self, numeric, params, **kwargs):
+        peerlist = self.get_common_peers(**kwargs)
+        [i.dump_numeric(numeric, params) for i in peerlist]
 
     def dump_isupport(self):
         isupport_tokens = {
@@ -327,6 +351,7 @@ class ClientProtocol(asyncio.Protocol):
             'CHARSET': 'utf-8',
             'SAFELIST': True,
             'METADATA': self.ctx.conf.metadata.get('limit', True),
+            'MONITOR': self.ctx.conf.monitor.get('limit', True),
             'CHANTYPES': '#',
         }
 
@@ -358,3 +383,7 @@ class ClientProtocol(asyncio.Protocol):
         # XXX - LUSERS isn't implemented.
         # self.handle_side_effect('LUSERS')
         self.handle_side_effect('MOTD')
+
+        eventmgr_core.dispatch('client connect', {
+            'client': self,
+        })

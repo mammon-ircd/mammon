@@ -22,6 +22,7 @@ import asyncio
 import logging
 from .client import ClientProtocol
 from .roles import Role
+from .utility import CaseInsensitiveList
 
 def load_extended_roles(ctx, k, roles, roles_extending):
     for kk, vv in roles_extending.get(k, {}).items():
@@ -97,6 +98,7 @@ class ConfigHandler(object):
 
         if self.metadata.get('restricted_keys', []) is None:
             self.metadata['restricted_keys'] = []
+        self.metadata['restricted_keys'] = CaseInsensitiveList(self.metadata['restricted_keys'])
 
         # roles
         roles = {}

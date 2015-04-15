@@ -17,12 +17,13 @@
 
 import string
 
-from mammon.server import eventmgr_core
-from mammon.server import eventmgr_rfc1459
+from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
 from mammon.capability import Capability
+from mammon.utility import CaseInsensitiveDict, CaseInsensitiveList
 
-# XXX - add to MONITOR system when implemented
-# cap_metadata_notify = Capability('metadata-notify')
+from . import monitor
+
+cap_metadata_notify = Capability('metadata-notify')
 
 metadata_key_allowed_chars = string.ascii_letters + string.digits + '_.:'
 metadata_key_allowed_chars_tbl = str.maketrans('', '', metadata_key_allowed_chars)
@@ -63,6 +64,19 @@ def metadata_GET(cli, ev_msg, target_name, target):
             cli.dump_numeric('766', [key, 'no matching keys'])
 
 def metadata_LIST(cli, ev_msg, target_name, target):
+    for key, visibility in get_visible_keys(cli, target):
+        args = [target_name, key, visibility]
+
+        data = target.metadata[key]
+        if isinstance(data, str):
+            args.append(data)
+
+        cli.dump_numeric('761', args)
+
+    cli.dump_numeric('762', ['end of metadata'])
+
+def get_visible_keys(cli, target):
+    visible_keys = []
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
 
     for key, data in target.metadata.items():
@@ -74,13 +88,10 @@ def metadata_LIST(cli, ev_msg, target_name, target):
             else:
                 continue
 
-        # return key
-        args = [target_name, key, visibility]
-        if isinstance(target.metadata[key], str):
-            args.append(data)
-        cli.dump_numeric('761', args)
+        # it's viewable!
+        visible_keys.append([key, visibility])
 
-    cli.dump_numeric('762', ['end of metadata'])
+    return visible_keys
 
 def metadata_SET(cli, ev_msg, target_name, target):
     if len(ev_msg['params']) > 2:
@@ -129,33 +140,27 @@ def metadata_SET(cli, ev_msg, target_name, target):
         cli.dump_numeric('769', [target_name, key, 'permission denied'])
         return
 
-    # set / unset key
-    args = [target_name, key, visibility]
-    key_slug = key.casefold()
-
-    if value is None:
-        try:
-            target.user_set_metadata.remove(key_slug)
-            del target.metadata[key]
-        except KeyError:
-            pass
-
-    else:
-        # if setting a new, non-restricted key, take metadata limits into account
-        if key_slug not in target.user_set_metadata and key_slug not in restricted_keys:
+    # if setting a new, non-restricted key, take metadata limits into account
+    # NOTE: we check these here instead of in dispatch handler because we should only
+    #   throw valid events, makes more sense to check it before we send the event
+    if value:
+        if key not in target.user_set_metadata and key not in restricted_keys:
             limit = cli.ctx.conf.metadata.get('limit', None)
             if limit is not None:
                 if len(target.user_set_metadata) + 1 > limit:
                     cli.dump_numeric('764', [target_name, 'metadata limit reached'])
                     return
 
-            target.user_set_metadata.append(key_slug)
-        target.metadata[key] = value
-        args.append(value)
-
-    cli.dump_numeric('761', args)
-
-    cli.dump_numeric('762', ['end of metadata'])
+    # throw change
+    info = {
+        'key': key,
+        'value': value,
+        'source': cli,
+        'target': target,
+        'target_name': target_name,
+        'visibility': visibility,
+    }
+    eventmgr_core.dispatch('metadata set', info)
 
 def metadata_CLEAR(cli, ev_msg, target_name, target):
     # check user has permission for target
@@ -164,10 +169,11 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         return
 
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
+    viewable_keys = CaseInsensitiveList()
     if cli.role:
-        viewable_keys = restricted_keys + cli.role.metakeys_get + cli.role.metakeys_set
-    else:
-        viewable_keys = []
+        viewable_keys += restricted_keys + cli.role.metakeys_get + cli.role.metakeys_set
+
+    key_list = {}
 
     for key, data in dict(target.metadata).items():
         # XXX - make sure user has perms to clear keys via channel ACL
@@ -175,40 +181,47 @@ def metadata_CLEAR(cli, ev_msg, target_name, target):
         # we check keys here because even if a user is clearing their own METADATA,
         #   there may be admin / oper-only / server keys which should not be cleared
         visibility = '*'
-        if key_slug in restricted_keys:
+        if key in restricted_keys:
             # user cannot see key at all, this is likely a server / oper-only key
             #   so we're not going to even tell them it exists
-            if key_slug not in viewable_keys:
+            if key not in viewable_keys:
                 continue
 
-            elif cli.role and key_slug in cli.role.metakeys_set:
+            elif cli.role and key in cli.role.metakeys_set:
                 visibility = 'server:restricted'
 
             # if they don't have permission to edit this specific key, just ignore it
-            #   maybe the spec should say throw an ERR_KEYNOPERMISSION here?
             else:
                 continue
 
-        # and clear the key
-        try:
-            target.metadata[key]
-        except KeyError:
-            pass
-        target.user_set_metadata.remove(key_slug)
-        cli.dump_numeric('761', [target_name, key, visibility])
+        key_list[key] = {
+            'visibility': visibility,
+        }
 
-    cli.dump_numeric('762', ['end of metadata'])
+    # throw change
+    info = {
+        'source': cli,
+        'target': target,
+        'target_name': target_name,
+        'keys': key_list,
+    }
+    eventmgr_core.dispatch('metadata clear', info)
 
-metadata_subcommands = {
+metadata_cmds = {
     'get': metadata_GET,
     'list': metadata_LIST,
     'set': metadata_SET,
     'clear': metadata_CLEAR,
 }
+metadata_cmds = CaseInsensitiveDict(**metadata_cmds)
 
 @eventmgr_rfc1459.message('METADATA', min_params=2)
 def m_METADATA(cli, ev_msg):
-    target_name, command = ev_msg['params'][:2]
+    target_name, subcmd = ev_msg['params'][:2]
+
+    if subcmd not in metadata_cmds:
+        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+        return
 
     # get target
     if target_name == '*':
@@ -222,9 +235,165 @@ def m_METADATA(cli, ev_msg):
         cli.dump_numeric('765', [target_name, 'invalid metadata target'])
         return
 
-    command = command.casefold()
+    metadata_cmds[subcmd](cli, ev_msg, target_name, target)
 
-    if command in metadata_subcommands:
-        metadata_subcommands[command](cli, ev_msg, target_name, target)
+def set_key(target, key, value=None):
+    ctx = get_context()
+
+    # clearing key
+    if value is None:
+        try:
+            del target.metadata[key]
+            target.user_set_metadata.remove(key)
+        except (KeyError, ValueError):
+            pass
+
+    # setting key
     else:
-        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+        target.metadata[key] = value
+
+        restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
+        if key not in target.user_set_metadata and key not in restricted_keys:
+            target.user_set_metadata.append(key)
+
+        target.metadata[key] = value
+
+def get_monitor_list(source, target):
+    monitor_list = monitor.monitored.get(target.nickname, [])
+    monitor_list += target.get_common_peers(exclude=monitor_list+[source], cap='metadata-notify')
+    return monitor_list
+
+def dump_metadata_notify(source, target, key, args, monitor_list=None, restricted_keys=None):
+    if monitor_list is None:
+        monitor_list = get_monitor_list(source, target)
+
+    if restricted_keys is None:
+        ctx = get_context()
+        restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
+
+    for cli in monitor_list:
+        if key in restricted_keys and (not cli.role or key not in cli.role.metakeys_get):
+            continue
+        if cli == source or cli == target:
+            continue
+        if cli.servername == ctx.conf.name:
+            cli.dump_verb('METADATA', args)
+
+@eventmgr_core.handler('metadata clear', priority=1, local_client='source')
+def m_metadata_clear(info):
+    ctx = get_context()
+    restricted_keys = ctx.conf.metadata.get('restricted_keys', [])
+
+    source = info['source']
+    target = info['target']
+    target_name = info['target_name']
+    keys = info['keys']
+
+    monitor_list = get_monitor_list(source, target)
+
+    # we dump numerics to the source here instead of in the 'delete' event
+    #   below so the 'end of metadata' numeric gets put in the right place
+    for key, kinfo in keys.items():
+        visibility = kinfo['visibility']
+
+        args = [target_name, key, visibility]
+        source.dump_numeric('761', args)
+
+        # create event to actually remove key and dump notify
+        info = {
+            'key': key,
+            'source': source,
+            'target': target,
+            'target_name': target_name,
+            'visibility': visibility,
+        }
+        eventmgr_core.dispatch('metadata delete', info)
+
+    source.dump_numeric('762', ['end of metadata'])
+
+@eventmgr_core.handler('metadata delete', priority=1)
+def m_metadata_delete(info):
+    key = info['key']
+    source = info['source']
+    target = info['target']
+    target_name = info['target_name']
+    visibility = info['visibility']
+
+    set_key(target, key)
+
+    args = [target_name, key, visibility]
+    dump_metadata_notify(source, target, key, args)
+
+@eventmgr_core.handler('metadata set', priority=1)
+def m_metadata_set(info):
+    ctx = get_context()
+
+    source = info['source']
+    target = info['target']
+    key = info['key']
+    value = info['value']
+
+    args = [info['target_name'], key, info['visibility']]
+    if value:
+        args.append(value)
+
+    set_key(target, key, value)
+
+    # if local client, dump numerics
+    if source.servername == ctx.conf.name:
+        source.dump_numeric('761', args)
+        source.dump_numeric('762', ['end of metadata'])
+
+    # sendto monitoring clients
+    dump_metadata_notify(source, target, key, args)
+
+@eventmgr_core.handler('cap set', priority=1, local_client='client')
+def m_metadata_cap_notify(info):
+    if 'metadata-notify' not in info['caps']:
+        return
+
+    cli = info['client']
+    for key, visibility in get_visible_keys(cli, cli):
+        cli.dump_verb('METADATA', [cli.nickname, key, visibility])
+
+    for nickname in cli.monitoring:
+        target = cli.ctx.clients.get(nickname, None)
+        if target:
+            for key, visibility in get_visible_keys(cli, target):
+                cli.dump_verb('METADATA', [target.nickname, key, visibility])
+
+@eventmgr_core.handler('monitor +', priority=1, local_client='client')
+def m_metadata_monitor_target(info):
+    cli = info['client']
+
+    if 'metadata-notify' not in cli.caps:
+        return
+
+    for nickname in info['targets']:
+        target = cli.ctx.clients.get(nickname, None)
+        if target:
+            for key, visibility in get_visible_keys(cli, target):
+                cli.dump_verb('METADATA', [target.nickname, key, visibility])
+
+@eventmgr_core.handler('channel join', priority=2)
+def m_metadata_monitor_chanjoin(info):
+    cli = info['client']
+    ch = info['channel']
+
+    # we don't check metadata-notify here because they should be auto-subscribed
+    #   for when they enable metadata-notify anyway
+
+    cli.monitoring.append(ch.name)
+
+    for key, visibility in get_visible_keys(cli, ch):
+        cli.dump_verb('METADATA', [ch.name, key, visibility])
+
+@eventmgr_core.handler('channel part', priority=2)
+def m_metadata_monitor_chanpart(info):
+    cli = info['client']
+    ch = info['channel']
+
+    try:
+        cli.monitoring.remove(ch.name)
+    except ValueError:
+        pass

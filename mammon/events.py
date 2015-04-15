@@ -36,9 +36,27 @@ class EventManager(EventManagerBase):
             return func
         return wrapped_fn
 
-    def handler(self, message, priority=10):
+    def _handle_checker(self, func, local_client=None):
+        from .server import get_context
+        def parent_handler(info, *args):
+            if local_client:
+                ctx = get_context()
+                client = info[local_client]
+                if client.servername != ctx.conf.name:
+                    return
+            func(info, *args)
+
+        return parent_handler
+
+
+    def handler(self, messages, priority=10, local_client=None):
+        if not isinstance(messages, (list, tuple)):
+            messages = [messages]
         def parent_fn(func):
-            self.register(message, func, priority=priority)
+            if local_client:
+                func = self._handle_checker(func, local_client=local_client)
+            for message in messages:
+                self.register(message, func, priority=priority)
             return func
         return parent_fn
 

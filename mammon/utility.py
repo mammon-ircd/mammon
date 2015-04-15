@@ -195,6 +195,56 @@ class ExpiringDict(collections.OrderedDict):
     def viewvalues(self):
         raise NotImplementedError()
 
+# just a custom casefolding list, designed for things like lists of keys
+class CaseInsensitiveList(collections.MutableSequence):
+    @staticmethod
+    def _check_value(value):
+        if not isinstance(value, object):
+           raise TypeError()
+
+    def __init__(self, data=None):
+        self.__store = []
+
+        if data:
+            self.extend(data)
+
+    def __getitem__(self, key):
+        # try:except is here so iterating works properly
+        try:
+            return self.__store[key]
+        except KeyError:
+            raise IndexError
+
+    def __setitem__(self, key, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self._check_value(value)
+        self.__store[key] = value
+
+    def __delitem__(self, key):
+        del self.__store[key]
+
+    def __len__(self):
+        return len(self.__store)
+
+    def insert(self, key, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self._check_value(value)
+        self.__store.insert(key, value)
+
+    def __contains__(self, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        return value in self.__store
+
+    def __add__(self, other):
+        self.extend(other)
+        return self
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 import string
@@ -207,7 +257,7 @@ nick_allowed_chars_tbl = str.maketrans('', '', nick_allowed_chars)
 first_nick_allowed_chars = string.ascii_letters + special
 
 def validate_nick(nick):
-    if nick[0] not in first_nick_allowed_chars:
+    if len(nick) < 1 or nick[0] not in first_nick_allowed_chars:
         return False
     remainder = nick[1:]
     badchars = remainder.translate(nick_allowed_chars_tbl)
@@ -217,7 +267,7 @@ chan_allowed_chars = string.ascii_letters + string.digits + special + '`~!@#$%^&
 chan_allowed_chars_tbl = str.maketrans('', '', chan_allowed_chars)
 
 def validate_chan(chan_name):
-    if chan_name[0] != '#':
+    if len(chan_name) < 1 or chan_name[0] != '#':
         return False
     badchars = chan_name[1:].translate(chan_allowed_chars_tbl)
     return badchars == ''
