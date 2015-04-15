@@ -17,7 +17,7 @@
 
 from mammon.client import ClientProtocol
 from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
-from mammon.utility import validate_nick, validate_chan, CaseInsensitiveDict, CaseInsensitiveList
+from mammon.utility import validate_nick, CaseInsensitiveDict, CaseInsensitiveList
 
 monitored = CaseInsensitiveDict()
 
@@ -35,14 +35,14 @@ def m_MONITOR(cli, ev_msg):
 
         limit = cli.ctx.conf.monitor.get('limit', None)
         if command == '+' and limit is not None:
-            if len(cli.monitoring) + len(ev_msg['params'][1].split(',')) > limit:
+            if len([c for c in cli.monitoring if validate_nick(c)]) + len(ev_msg['params'][1].split(',')) > limit:
                 cli.dump_numeric('734', [cli.nickname, str(limit), ev_msg['params'][1], 'Monitor list is full'])
                 return
-        
+
         if command in '-+':
             targets = []
             for target in ev_msg['params'][1].split(','):
-                if not validate_nick(target) and not validate_chan(target):
+                if not validate_nick(target):
                     continue
                 targets.append(target)
 
