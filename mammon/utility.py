@@ -257,7 +257,7 @@ nick_allowed_chars_tbl = str.maketrans('', '', nick_allowed_chars)
 first_nick_allowed_chars = string.ascii_letters + special
 
 def validate_nick(nick):
-    if nick[0] not in first_nick_allowed_chars:
+    if len(nick) < 1 or nick[0] not in first_nick_allowed_chars:
         return False
     remainder = nick[1:]
     badchars = remainder.translate(nick_allowed_chars_tbl)
@@ -267,7 +267,7 @@ chan_allowed_chars = string.ascii_letters + string.digits + special + '`~!@#$%^&
 chan_allowed_chars_tbl = str.maketrans('', '', chan_allowed_chars)
 
 def validate_chan(chan_name):
-    if chan_name[0] != '#':
+    if len(chan_name) < 1 or chan_name[0] != '#':
         return False
     badchars = chan_name[1:].translate(chan_allowed_chars_tbl)
     return badchars == ''
