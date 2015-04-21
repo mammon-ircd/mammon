@@ -17,8 +17,10 @@
 
 from ircreactor.envelope import RFC1459Message
 from .utility import validate_chan, CaseInsensitiveDict, CaseInsensitiveList
-from .property import member_property_items
 from .server import get_context
+from .property import member_property_items, channel_property_items, channel_flag_items
+import copy
+from ircmatch import match
 
 class ChannelManager(object):
     def __init__(self, ctx):
@@ -44,7 +46,7 @@ class ChannelMembership(object):
     def name(self):
         pstr = str()
         for prop, flag in member_property_items.items():
-            if prop in self.props:
+            if self.props.get(prop, False):
                 pstr += flag
         pstr += self.client.nickname
         return pstr
@@ -53,7 +55,7 @@ class ChannelMembership(object):
     def who_status(self):
         pstr = self.client.status
         for prop, flag in member_property_items.items():
-            if prop in self.props:
+            if self.props.get(prop, False):
                 pstr += flag
         return pstr
 
@@ -61,7 +63,7 @@ class ChannelMembership(object):
     def channel_name(self):
         pstr = str()
         for prop, flag in member_property_items.items():
-            if prop in self.props:
+            if self.props.get(prop, False):
                 pstr += flag
         pstr += self.channel.name
         return pstr
@@ -75,11 +77,27 @@ class Channel(object):
         self.topic_ts = 0
         self.props = CaseInsensitiveDict()
         self.user_set_metadata = CaseInsensitiveList()
+        self.props_ts = 0
         self.metadata = CaseInsensitiveDict()
 
     def authorize(self, cli, ev_msg):
-        if 'key' in self.props and self.props['key'] != ev_msg['params'][1]:
-            cli.dump_numeric('474', [self.name, 'Cannot join channel (+k) - bad key'])
+        if 'key' in self.props and (len(ev_msg['params']) < 2 or self.props['key'] != ev_msg['params'][1]):
+            cli.dump_numeric('475', [self.name, 'Cannot join channel (+k) - bad key'])
+            return False
+        if 'exempt' in self.props:
+            for e in self.props['exempt']:
+                if match(0, e, cli.hostmask):
+                    return True
+        if 'ban' in self.props:
+            for b in self.props['ban']:
+                if match(0, b, cli.hostmask):
+                    cli.dump_numeric('474', [self.name, 'You are banned.'])
+                    return False
+        if 'invite' in self.props and 'invite-exemption' in self.props:
+            for i in self.props['invite-exemption']:
+                if match(0, i, cli.hostmask):
+                    return True
+                # XXX - /invite command
             return False
         return True
 
@@ -98,16 +116,25 @@ class Channel(object):
         matches = tuple(filter(lambda x: x.client == client, self.members))
         return len(matches) > 0
 
-    def can_send(self, client):
-        is_member = self.has_member(client)
-        if 'allow-external' not in self.props and not is_member:
-            return False
+    def get_member(self, client):
+        matches = tuple(filter(lambda x: x.client == client, self.members))
+        return len(matches) > 0 and matches[0]
 
-        # XXX - access checking
+    def find_member(self, nickname):
+        matches = tuple(filter(lambda x: x.client.nickname == nickname, self.members))
+        return len(matches) > 0 and matches[0]
+
+    def can_send(self, client):
+        member = self.get_member(client)
+        if not self.props.get('allow-external', False) and not member:
+            return False
+        if self.props.get('moderated', False):
+            # XXX - check if the user can speak in this +m channel
+            return False
         return True
 
     def can_display(self, client):
-        if 'secret' not in self.props:
+        if self.props.get('secret', False):
             return True
         return self.has_member(client)
 
@@ -119,6 +146,118 @@ class Channel(object):
             [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list and m.client.servername == ctx.conf.name]
         else:
             [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list]
+
+    def set_legacy_modes(self, client, in_str, args):
+
+        before = copy.deepcopy(self.props)
+        before_users = copy.deepcopy({member.client.nickname: member.props for member in self.members})
+
+        mod = False
+        for i in in_str:
+            if i == '+':
+                mod = True
+            elif i == '-':
+                mod = False
+            else:
+                if i not in channel_flag_items:
+                    client.dump_numeric('472', [i, 'is an unknown mode char to me'])
+                    continue
+                prop = channel_flag_items[i]
+                if prop == 'ban' or prop == 'invite-exemption' or prop == 'exemption' or prop == 'quiet':
+                    if prop not in self.props:
+                        self.props[prop] = CaseInsensitiveDict()
+                    if len(args) == 0:
+                        for user, info in self.props[prop].items():
+                            client.dump_numeric('367', [self.name, user, info[0], info[1]])
+                        client.dump_numeric('368', [self.name, 'End of Channel '+prop.title()+' List'])
+                        continue
+                    if not self.get_member(client).props.get('set-modes', False):
+                        client.dump_numeric('482', [self.name, 'You\'re not a channel operator'])
+                        continue
+                    arg = args.pop(0)
+                    if mod == False and arg in self.props[prop]:
+                        del(self.props[prop][arg])
+                    if mod == True:
+                        self.props[prop][arg] = (client.hostmask, client.ctx.current_ts)
+                    continue
+                if not self.get_member(client).props.get('set-modes', False):
+                    client.dump_numeric('482', [self.name, 'You\'re not a channel operator'])
+                    continue
+                if prop == 'key' or prop == 'limit' or prop == 'join-throttle' or prop == 'forward':
+                    if len(args) > 0:
+                        self.props[prop] = args.pop(0)
+                    continue
+
+        self.flush_legacy_mode_change(client, before, self.props,
+                                      before_users, {member.client.nickname: member.props for member in self.members})
+
+
+    def flush_legacy_mode_change(self, cli, before, after, before_users, after_users):
+        out = str()
+        args = []
+        mod = 0
+
+        for i in channel_property_items.keys():
+            if before.get(i, False) and not after.get(i, False):
+                if mod == 1:
+                    if i == 'ban' or i == 'quiet' or i == 'invite-exemption' or i == 'exemption':
+                        for j in before.get(i, []):
+                            if j not in after.get(i):
+                                out += channel_property_items[i]
+                                args.append(j)
+                        continue
+                    out += channel_property_items[i]
+                    if before.get(i, False) != True:
+                        args.append(before.get(i))
+                else:
+                    mod = 1
+                    out += '-'
+                    if i == 'ban' or i == 'quiet' or i == 'invite-exemption' or i == 'exemption':
+                        for j in before.get(i, []):
+                            if j not in after.get(i):
+                                out += channel_property_items[i]
+                                args.append(j)
+                        continue
+                    out += channel_property_items[i]
+                    if before.get(i, False) != True:
+                        args.append(before.get(i))
+            elif not before.get(i, False) and after.get(i, False):
+                if mod == 2:
+                    if i == 'ban' or i == 'quiet' or i == 'invite-exemption' or i == 'exemption':
+                        for j in after.get(i):
+                            if j not in before.get(i, []):
+                                out += channel_property_items[i]
+                                args.append(j)
+                        continue
+                    out += channel_property_items[i]
+                    if after.get(i, False) != True:
+                        args.append(after.get(i))
+                else:
+                    mod = 2
+                    out += '+'
+                    if i == 'ban' or i == 'quiet' or i == 'invite-exemption' or i == 'exemption':
+                        for j in after.get(i):
+                            if j not in before.get(i, []):
+                                out += channel_property_items[i]
+                                args.append(j)
+                        continue
+                    out += channel_property_items[i]
+                    if after.get(i, False) != True:
+                        args.append(after.get(i))
+        if len(out) > 0:
+            msg = RFC1459Message.from_data('MODE', source=cli.hostmask, params=[self.name, out] + args)
+            self.dump_message(msg)
+
+    @property
+    def legacy_modes(self):
+        args = ['+']
+        for i in self.props.keys():
+            if self.props[i] != False and i in channel_property_items \
+                    and not (i == 'ban' or i == 'quiet' or i == 'invite-exemption' or i == 'exemption'):
+                args[0] += channel_property_items[i]
+                if self.props[i] != True:
+                    args.append(self.props[i])
+        return ' '.join(args)
 
     @property
     def classification(self):
@@ -157,7 +296,7 @@ def m_join_channel(info):
     ctx = get_context()
 
     ch.join(cli)
-    ch.dump_message(RFC1459Message.from_data('join', source=cli.hostmask, params=[ch.name]))
+    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
 
     if cli.servername != ctx.conf.name:
         return
@@ -247,6 +386,11 @@ def m_TOPIC(cli, ev_msg):
 
         if not ch.has_member(cli):
             cli.dump_numeric('442', [ch.name, "You're not on that channel"])
+            continue
+
+        # XXX - if not ch.get_member(cli).props.get('topic-change', False) and
+        if not ch.props.get('op-topic'):
+            cli.dump_numeric('482', [ch.name, 'You\'re not a channel operator'])
             continue
 
         # handle inquiry
