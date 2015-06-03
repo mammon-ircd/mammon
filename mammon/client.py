@@ -166,6 +166,12 @@ class ClientProtocol(asyncio.Protocol):
             self.quit('Excess flood')
             return
 
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(data) > linelen:
+            data = data[:linelen]
+            self.quit('Line too long')
+            return
+
         self.recvq.append(m)
 
         # XXX - drain_queue should be called on all objects at once to enforce recvq limits
@@ -191,7 +197,15 @@ class ClientProtocol(asyncio.Protocol):
         out_m.client = self
         eventmgr_core.dispatch('outbound message postprocess', out_m)
 
-        self.transport.write(bytes(out_m.to_message() + '\r\n', 'UTF-8'))
+        message = out_m.to_message()
+
+        # should happen almost never
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(message) > linelen - 2:
+            self.ctx.logger.warning('message to {} truncated to {} bytes'.format(self.nickname, linelen))
+            message = message[:linelen - 2]
+
+        self.transport.write(bytes(message + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
         """Dump a numeric to a connected client.
@@ -366,6 +380,10 @@ class ClientProtocol(asyncio.Protocol):
         topiclen = self.ctx.conf.limits.get('topic', None)
         if topiclen:
             isupport_tokens['TOPICLEN'] = topiclen
+
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen:
+            isupport_tokens['LINELEN'] = linelen
 
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
