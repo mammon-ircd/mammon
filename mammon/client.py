@@ -355,6 +355,18 @@ class ClientProtocol(asyncio.Protocol):
             'CHANTYPES': '#',
         }
 
+        nicklen = self.ctx.conf.limits.get('nick', None)
+        if nicklen:
+            isupport_tokens['NICKLEN'] = nicklen
+
+        channellen = self.ctx.conf.limits.get('channel', None)
+        if channellen:
+            isupport_tokens['CHANNELLEN'] = channellen
+
+        # topiclen = self.ctx.conf.limits.get('topic', None)
+        # if topiclen:
+        #     isupport_tokens['TOPICLEN'] = topiclen
+
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
             if isinstance(v, bool):

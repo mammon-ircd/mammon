@@ -273,7 +273,8 @@ def m_JOIN(cli, ev_msg):
     chanlist = ev_msg['params'][0].split(',')
 
     for chan in chanlist:
-        if not validate_chan(chan):
+        channellen = cli.ctx.conf.limits.get('channel', None)
+        if not validate_chan(chan) or (channellen and len(chan) > channellen):
             cli.dump_numeric('479', [chan, 'Illegal channel name'])
             return
         ch = cli.ctx.chmgr.get(chan, create=True)
