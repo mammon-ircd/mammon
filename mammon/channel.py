@@ -404,8 +404,15 @@ def m_TOPIC(cli, ev_msg):
             cli.dump_numeric('331', [ch.name, 'No topic is set'])
             continue
 
+        topic = ev_msg['params'][1]
+
+        # restrict length if we have it defined
+        topiclen = cli.ctx.conf.limits.get('topic', None)
+        if topiclen and len(ev_msg['params'][1]) > topiclen:
+            topic = topic[:topiclen]
+
         # handle setting
-        ch.topic = ev_msg['params'][1]
+        ch.topic = topic
         ch.topic_setter = cli.hostmask
         ch.topic_ts = cli.ctx.current_ts
 
