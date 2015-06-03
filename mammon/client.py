@@ -158,18 +158,18 @@ class ClientProtocol(asyncio.Protocol):
         [self.message_received(m) for m in data.splitlines()]
 
     def message_received(self, data):
-        m = RFC1459Message.from_message(data.decode('UTF-8', 'replace').strip('\r\n'))
+        data = data.decode('UTF-8', 'replace').strip('\r\n')
+
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(data) > linelen:
+            data = data[:linelen]
+
+        m = RFC1459Message.from_message(data)
         m.client = self
 
         # logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
         if len(self.recvq) > self.ctx.conf.recvq_len:
             self.quit('Excess flood')
-            return
-
-        linelen = self.ctx.conf.limits.get('line', None)
-        if linelen and len(data) > linelen:
-            data = data[:linelen]
-            self.quit('Line too long')
             return
 
         self.recvq.append(m)
