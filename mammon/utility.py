@@ -245,6 +245,16 @@ class CaseInsensitiveList(collections.MutableSequence):
         self.extend(other)
         return self
 
+import re
+
+def validate_hostname(hostname):
+    if len(hostname) > 255 or len(hostname) < 1:
+        return False
+    if hostname[-1] == '.':
+        hostname = hostname[:-1]  # strip exactly one dot from the right, if present
+    allowed = re.compile(r'(?!-)[A-Z\d-]{1,63}(?<!-)$', re.IGNORECASE)
+    return all(allowed.match(x) for x in hostname.split('.'))
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 from .server import get_context
