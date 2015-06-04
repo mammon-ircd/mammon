@@ -360,9 +360,7 @@ class ClientProtocol(asyncio.Protocol):
     def dump_isupport(self):
         isupport_tokens = {
             'NETWORK': self.ctx.conf.network,
-            'CLIENTVER': '3.2',
-            'CASEMAPPING': 'ascii',
-            'CHARSET': 'utf-8',
+            'CASEMAPPING': 'rfc3454',
             'SAFELIST': True,
             'METADATA': self.ctx.conf.metadata.get('limit', True),
             'MONITOR': self.ctx.conf.monitor.get('limit', True),
