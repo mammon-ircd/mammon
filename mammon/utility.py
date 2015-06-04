@@ -247,6 +247,7 @@ class CaseInsensitiveList(collections.MutableSequence):
 
 # fast irc casemapping validation
 # part of mammon, under mammon license.
+from .server import get_context
 import string
 
 special = '_-|^{}[]`'
@@ -259,6 +260,9 @@ first_nick_allowed_chars = string.ascii_letters + special
 def validate_nick(nick):
     if len(nick) < 1 or nick[0] not in first_nick_allowed_chars:
         return False
+    nicklen = get_context().conf.limits.get('nick', None)
+    if nicklen and len(nick) > nicklen:
+        return False
     remainder = nick[1:]
     badchars = remainder.translate(nick_allowed_chars_tbl)
     return badchars == ''
@@ -268,6 +272,9 @@ chan_allowed_chars_tbl = str.maketrans('', '', chan_allowed_chars)
 
 def validate_chan(chan_name):
     if len(chan_name) < 1 or chan_name[0] != '#':
+        return False
+    channellen = get_context().conf.limits.get('channel', None)
+    if channellen and len(chan_name) > channellen:
         return False
     badchars = chan_name[1:].translate(chan_allowed_chars_tbl)
     return badchars == ''

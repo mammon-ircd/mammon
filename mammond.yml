@@ -40,7 +40,7 @@ limits:
   nick: 50
 
   # channel - maximum length of channel names
-  channel: 50
+  channel: 200
 
   # topic - maximum length of channel topics
   topic: 400

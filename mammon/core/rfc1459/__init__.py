@@ -110,7 +110,9 @@ def m_QUIT(cli, ev_msg):
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
     nicklen = cli.ctx.conf.limits.get('nick', None)
-    if not validate_nick(new_nickname) or (nicklen and len(new_nickname) > nicklen):
+    if nicklen and len(new_nickname) > nicklen:
+        new_nickname = new_nickname[:nicklen]
+    if not validate_nick(new_nickname):
         cli.dump_numeric('432', [new_nickname, 'Erroneous nickname'])
         return
     if new_nickname in cli.ctx.clients:
