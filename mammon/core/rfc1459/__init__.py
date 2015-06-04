@@ -109,6 +109,9 @@ def m_QUIT(cli, ev_msg):
 @eventmgr_rfc1459.message('NICK', min_params=1, allow_unregistered=True)
 def m_NICK(cli, ev_msg):
     new_nickname = ev_msg['params'][0]
+    nicklen = cli.ctx.conf.limits.get('nick', None)
+    if nicklen and len(new_nickname) > nicklen:
+        new_nickname = new_nickname[:nicklen]
     if not validate_nick(new_nickname):
         cli.dump_numeric('432', [new_nickname, 'Erroneous nickname'])
         return

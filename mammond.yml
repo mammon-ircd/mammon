@@ -33,6 +33,22 @@ logs:
   }
 
 
+# Limits define maximum lengths for various commands and objects
+# to remove a limit, simply comment it out
+limits:
+  # nick - maximum length of nicknames
+  nick: 50
+
+  # channel - maximum length of channel names
+  channel: 200
+
+  # topic - maximum length of channel topics
+  topic: 400
+
+  # line - maximum length of lines in and out
+  line: 2048
+
+
 # Roles define the capabilities an oper may have, as well as role-specific
 # metadata.
 

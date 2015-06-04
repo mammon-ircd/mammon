@@ -158,7 +158,13 @@ class ClientProtocol(asyncio.Protocol):
         [self.message_received(m) for m in data.splitlines()]
 
     def message_received(self, data):
-        m = RFC1459Message.from_message(data.decode('UTF-8', 'replace').strip('\r\n'))
+        data = data.decode('UTF-8', 'replace').strip('\r\n')
+
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(data) > linelen:
+            data = data[:linelen]
+
+        m = RFC1459Message.from_message(data)
         m.client = self
 
         # logging.debug('client {0} --> {1}'.format(repr(self.__dict__), repr(m.serialize())))
@@ -191,7 +197,15 @@ class ClientProtocol(asyncio.Protocol):
         out_m.client = self
         eventmgr_core.dispatch('outbound message postprocess', out_m)
 
-        self.transport.write(bytes(out_m.to_message() + '\r\n', 'UTF-8'))
+        message = out_m.to_message()
+
+        # should happen almost never
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(message) > linelen - 2:
+            self.ctx.logger.warning('message to {} truncated to {} bytes'.format(self.nickname, linelen))
+            message = message[:linelen - 2]
+
+        self.transport.write(bytes(message + '\r\n', 'UTF-8'))
 
     def dump_numeric(self, numeric, params):
         """Dump a numeric to a connected client.
@@ -353,6 +367,10 @@ class ClientProtocol(asyncio.Protocol):
             'METADATA': self.ctx.conf.metadata.get('limit', True),
             'MONITOR': self.ctx.conf.monitor.get('limit', True),
             'CHANTYPES': '#',
+            'NICKLEN': self.ctx.conf.limits.get('nick', ''),
+            'CHANNELLEN': self.ctx.conf.limits.get('channel', ''),
+            'TOPICLEN': self.ctx.conf.limits.get('topic', ''),
+            'LINELEN': self.ctx.conf.limits.get('line', ''),
         }
 
         # XXX - split into multiple 005 lines if > 13 tokens
