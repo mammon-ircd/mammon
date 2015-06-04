@@ -130,6 +130,9 @@ def m_NICK(cli, ev_msg):
 @eventmgr_rfc1459.message('USER', min_params=4, allow_unregistered=True)
 def m_USER(cli, ev_msg):
     new_username = ev_msg['params'][0]
+    userlen = cli.ctx.conf.limits.get('user', None)
+    if userlen and len(new_username) > userlen:
+        new_username = new_username[:userlen]
     new_realname = ev_msg['params'][3]
     cli.username = new_username
     cli.realname = new_realname

@@ -371,6 +371,7 @@ class ClientProtocol(asyncio.Protocol):
             'CHANNELLEN': self.ctx.conf.limits.get('channel', ''),
             'TOPICLEN': self.ctx.conf.limits.get('topic', ''),
             'LINELEN': self.ctx.conf.limits.get('line', ''),
+            'USERLEN': self.ctx.conf.limits.get('user', ''),
         }
 
         # XXX - split into multiple 005 lines if > 13 tokens
