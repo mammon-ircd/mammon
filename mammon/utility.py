@@ -248,10 +248,10 @@ class CaseInsensitiveList(collections.MutableSequence):
 import re
 
 def validate_hostname(hostname):
-    if len(hostname) > 255 or len(hostname) < 1:
-        return False
-    if hostname[-1] == '.':
+    if hostname.endswith('.'):
         hostname = hostname[:-1]  # strip exactly one dot from the right, if present
+    if len(hostname) < 1 or len(hostname) > 253:
+        return False
     allowed = re.compile(r'(?!-)[A-Z\d-]{1,63}(?<!-)$', re.IGNORECASE)
     return all(allowed.match(x) for x in hostname.split('.'))
 
