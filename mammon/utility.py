@@ -257,8 +257,7 @@ def validate_hostname(hostname):
     for part in hostname.split('.'):
         if len(part) < 1 or len(part) > 63 or part.startswith('-') or part.endswith('-'):
             return False
-        badchars = part.translate(hostname_allowed_chars_tbl)
-        if badchars:
+        if part.translate(hostname_allowed_chars_tbl) != '':
             return False
     return True
 
