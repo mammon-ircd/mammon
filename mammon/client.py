@@ -22,7 +22,7 @@ import copy
 
 from ircreactor.envelope import RFC1459Message
 from .channel import Channel
-from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq
+from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq, validate_hostname
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from . import __version__
@@ -144,8 +144,12 @@ class ClientProtocol(asyncio.Protocol):
             fdns = yield from self.ctx.eventloop.getaddrinfo(rdns[0], rdns[1], proto=socket.IPPROTO_TCP)
             for fdns_e in fdns:
                 if fdns_e[4][0] == self.realaddr:
-                    self.dump_notice('Found your hostname: ' + rdns[0])
-                    self.hostname = rdns[0]
+                    hostname = rdns[0]
+                    if validate_hostname(hostname):
+                        self.dump_notice('Found your hostname: ' + hostname)
+                        self.hostname = hostname
+                    else:
+                        self.dump_notice('Hostname found but invalid: ' + hostname)
                     self.release_registration_lock('DNS')
                     return
         except:

@@ -245,10 +245,25 @@ class CaseInsensitiveList(collections.MutableSequence):
         self.extend(other)
         return self
 
+import string
+hostname_allowed_chars = string.ascii_letters + string.digits + '-'
+hostname_allowed_chars_tbl = str.maketrans('', '', hostname_allowed_chars)
+
+def validate_hostname(hostname):
+    if hostname.endswith('.'):
+        hostname = hostname[:-1]  # strip exactly one dot from the right, if present
+    if len(hostname) < 1 or len(hostname) > 253:
+        return False
+    for part in hostname.split('.'):
+        if len(part) < 1 or len(part) > 63 or part.startswith('-') or part.endswith('-'):
+            return False
+        if part.translate(hostname_allowed_chars_tbl) != '':
+            return False
+    return True
+
 # fast irc casemapping validation
 # part of mammon, under mammon license.
 from .server import get_context
-import string
 
 special = '_-|^{}[]`'
 
