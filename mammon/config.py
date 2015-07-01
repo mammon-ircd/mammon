@@ -59,6 +59,12 @@ class ConfigHandler(object):
             if l['ssl']:
                 context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
 
+                try:
+                    context.set_ciphers("kEECDH+HIGH:kEDH+HIGH:HIGH:!RC4:!aNULL")
+                except ssl.SSLError:
+                    print("mammon: error: no ciphers could be selected. SSL is not available for any listener.")
+                    break
+
                 keyfile = os.path.expanduser(l.get('keyfile', ''))
                 if not keyfile:
                     print('mammon: error: SSL listener {}:{} [{}] does not have a `keyfile`, skipping'.format(l['host'], l['port'], proto))
@@ -69,6 +75,17 @@ class ConfigHandler(object):
                     print('mammon: error: SSL listener {}:{} [{}] does not have a `certfile`, skipping'.format(l['host'], l['port'], proto))
                     continue
 
+                if ssl.HAS_ECDH:
+                    context.set_ecdh_curve('secp384r1')
+                    context.options |= ssl.OP_SINGLE_ECDH_USE
+
+                if 'dhparams' in l:
+                    DHparams = os.path.expanduser(l.get('dhparams', ''))
+
+                    if DHparams:
+                        context.load_dh_params(DHparams)
+                        context.options |= ssl.OP_SINGLE_DH_USE
+
                 context.load_cert_chain(certfile, keyfile=keyfile)
 
                 # disable old protocols
@@ -77,6 +94,14 @@ class ConfigHandler(object):
 
                 # disable compression because of CRIME attack
                 context.options |= ssl.OP_NO_COMPRESSION
+
+                # prefer server's cipher list over the client's
+                context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+
+                # SSL_OP_NO_TICKET
+                # not sure why _ssl doesn't have a bitmask for this, but here's what it really is
+                # disable TLS session tickets
+                context.options |= 0x00004000
 
                 # XXX - we want to move SSL out-of-process, similar to how charybdis does it,
                 #   but for now, just a warning
