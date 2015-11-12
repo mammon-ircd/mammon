@@ -17,6 +17,17 @@ server:
   - "This is mammond's default motd.  You can change it in mammond.yml."
 
 
+# The data object defines the data store parameters
+data:
+
+  ## JSON should only be considered for testing
+  # format - data store type
+  format: "json"
+
+  # filename - data store filename
+  filename: ".mammon.data.json"
+
+
 # The listeners object is a list of listeners.
 listeners:
 - {"host": "0.0.0.0", "port": 6667, "ssl": false}
