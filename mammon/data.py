@@ -30,7 +30,6 @@ class DataStore:
         self.format = ctx.conf.data['format']
 
         if self.format == 'json':
-            import json
             self._store = {}
             self._store_lock = threading.Lock()
 
@@ -45,8 +44,6 @@ class DataStore:
 
     def save(self):
         if self.format == 'json':
-            import json
-
             with open(self._filename, 'w') as store_file:
                 store_file.write(json.dumps(self._store))
         else:
