@@ -199,6 +199,9 @@ Options:
 
         try:
             self.eventloop.run_forever()
+        except KeyboardInterrupt:
+            # don't throw errors on being ctrl+c'd
+            ...
         except:
             raise
         finally:
