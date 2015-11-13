@@ -22,9 +22,6 @@ import threading
 from .server import get_context
 
 class DataStore:
-    def __init__(self):
-        ...
-
     def create_or_load(self):
         ctx = get_context()
         self.format = ctx.conf.data['format']
