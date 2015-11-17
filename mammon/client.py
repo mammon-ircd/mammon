@@ -27,6 +27,8 @@ from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from . import __version__
 
+client_registration_locks = ['NICK', 'USER', 'DNS']
+
 class ClientHistoryEntry(object):
     def __init__(self, cli):
         self.nickname = cli.nickname
@@ -71,7 +73,7 @@ class ClientProtocol(asyncio.Protocol):
         self.connected = True
         self.registered = False
         self.registration_lock = set()
-        self.push_registration_lock('NICK', 'USER', 'DNS')
+        self.push_registration_lock(*client_registration_locks)
 
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
@@ -81,6 +83,9 @@ class ClientProtocol(asyncio.Protocol):
             self.props['special:tls'] = True
 
         asyncio.async(self.do_rdns_check())
+        eventmgr_core.dispatch('client reglocked', {
+            'client': self,
+        })
 
     def update_idle(self):
         self.last_event_ts = self.ctx.current_ts

@@ -134,7 +134,7 @@ def m_USER(cli, ev_msg):
     if userlen and len(new_username) > userlen:
         new_username = new_username[:userlen]
     new_realname = ev_msg['params'][3]
-    cli.username = new_username
+    cli.username = '~' + new_username
     cli.realname = new_realname
     cli.release_registration_lock('USER')
 
