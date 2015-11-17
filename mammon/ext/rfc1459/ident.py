@@ -32,9 +32,9 @@ def do_ident_check(cli):
 
         reader, writer = yield from asyncio.open_connection(cli.realaddr, 113, local_addr=(local_address, 0))
 
-        writer.write(bytes(str(local_port), 'ascii'))  # server port
-        writer.write(b' , ')
-        writer.write(bytes(str(remote_port), 'ascii'))  # client port
+        writer.write(bytes(str(remote_port), 'ascii'))  # server port
+        writer.write(b', ')
+        writer.write(bytes(str(local_port), 'ascii'))  # client port
         writer.write(b'\r\n')
 
         # we only give it one shot, if the reply isn't good the first time we
@@ -59,7 +59,7 @@ def do_ident_check(cli):
             if not isinstance(userlen, int):
                 userlen = len(raw_ident)
             for i in range(userlen):
-                if raw_ident[0] == '@':
+                if len(raw_ident) == 0 or raw_ident[0] == '@':
                     break
 
                 if not raw_ident[0].isspace() and raw_ident[0] not in (':', '['):
