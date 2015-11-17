@@ -48,10 +48,14 @@ def do_ident_check(cli):
         response_type = args[1].strip()
 
         if response_type == b'USERID':
-            raw_ident = str(args[3].strip(), 'utf8')
+            if b',' in args[2]:
+                charset = args[2].split(b',')[1]
+                charset = str(charset.strip(), 'utf8')
+            else:
+                # official default is "US-ASCII"
+                charset = 'utf8'
 
-            while raw_ident[0] in ('~', '^'):
-                raw_ident = raw_ident[1:]
+            raw_ident = str(args[3].strip(), charset).lstrip('~^')
 
             ident = ''
 
