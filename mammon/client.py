@@ -71,7 +71,7 @@ class ClientProtocol(asyncio.Protocol):
         self.connected = True
         self.registered = False
         self.registration_lock = set()
-        self.push_registration_lock('NICK', 'USER', 'DNS')
+        self.push_registration_lock('NICK', 'USER', 'DNS', 'IDENT')
 
         self.ctx.logger.debug('new inbound connection from {}'.format(self.peername))
         self.eventmgr = eventmgr_rfc1459
@@ -81,6 +81,7 @@ class ClientProtocol(asyncio.Protocol):
             self.props['special:tls'] = True
 
         asyncio.async(self.do_rdns_check())
+        asyncio.async(self.do_ident_check())
 
     def update_idle(self):
         self.last_event_ts = self.ctx.current_ts
@@ -157,6 +158,64 @@ class ClientProtocol(asyncio.Protocol):
 
         self.dump_notice('Could not find your hostname...')
         self.release_registration_lock('DNS')
+
+    def do_ident_check(self):
+        """Handle looking up the client's ident as a coroutine."""
+        self.dump_notice('Checking Ident')
+
+        try:
+            reader, writer = yield from asyncio.open_connection(self.realaddr, 113)
+
+            local_address, local_port = self.transport.get_extra_info('socket').getsockname()
+            remote_address, remote_port = self.transport.get_extra_info('socket').getpeername()
+
+            writer.write(bytes(str(local_port), 'ascii'))  # server port
+            writer.write(b' , ')
+            writer.write(bytes(str(remote_port), 'ascii'))  # client port
+            writer.write(b'\r\n')
+
+            # we only give it one shot, if the reply isn't good the first time we
+            #   fail the auth entirely. this is the same as charyb
+            line = yield from reader.readline()
+            writer.close()
+
+            # check
+            args = line.split(b':')
+
+            response_type = args[1].strip()
+
+            if response_type == b'USERID':
+                raw_ident = str(args[3].strip(), 'utf8')
+
+                while raw_ident[0] in ('~', '^'):
+                    raw_ident = raw_ident[1:]
+
+                ident = ''
+
+                userlen = self.ctx.conf.limits.get('user', None)
+                if not isinstance(userlen, int):
+                    userlen = len(raw_ident)
+                for i in range(userlen):
+                    if raw_ident[0] == '@':
+                        break
+
+                    if not raw_ident[0].isspace() and raw_ident[0] not in (':', '['):
+                        ident += raw_ident[0]
+
+                    raw_ident = raw_ident[1:]
+
+                if isinstance(userlen, int) and len(ident) > userlen:
+                    ident = ident[:userlen]
+
+                self.username = ident
+                self.dump_notice('Got Ident response')
+                self.release_registration_lock('IDENT')
+                return
+        except:
+            pass
+
+        self.dump_notice('No Ident response')
+        self.release_registration_lock('IDENT')
 
     def data_received(self, data):
         [self.message_received(m) for m in data.splitlines()]

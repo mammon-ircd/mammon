@@ -36,6 +36,9 @@ logs:
 # Limits define maximum lengths for various commands and objects
 # to remove a limit, simply comment it out
 limits:
+  # user - maximum length of usernames
+  user: 10
+
   # nick - maximum length of nicknames
   nick: 50
 
