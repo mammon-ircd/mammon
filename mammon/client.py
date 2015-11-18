@@ -49,7 +49,9 @@ class ClientProtocol(asyncio.Protocol):
 
         self.peername = transport.get_extra_info('peername')
         if self.peername[0][0] == ':':
-            self.peername = tuple(['0' + self.peername[0], *self.peername[1:]])
+            pn = list(self.peername)
+            pn[0] = '0' + self.peername[0]
+            self.peername = tuple(pn)
 
         self.transport = transport
         self.recvq = list()
