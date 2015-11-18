@@ -33,6 +33,7 @@ class ChannelManager(object):
         if ch or not create:
             return ch
         ch = Channel(name)
+        ch.props_ts = self.ctx.current_ts
         self.ctx.channels[name] = ch
         return ch
 
