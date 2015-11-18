@@ -17,7 +17,7 @@
 
 import time
 
-from mammon.server import eventmgr_core
+from mammon.server import eventmgr_core, get_context
 from mammon.capability import Capability
 
 cap_echo_message = Capability('echo-message')
