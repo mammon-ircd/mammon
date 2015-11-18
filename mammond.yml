@@ -208,3 +208,5 @@ extensions:
 - mammon.ext.rfc1459.42
 - mammon.ext.rfc1459.ident
 - mammon.ext.ircv3.server_time
+- mammon.ext.ircv3.echo_message
+- mammon.ext.misc.nopost
