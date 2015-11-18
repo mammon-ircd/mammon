@@ -25,6 +25,7 @@ def get_context():
 
 from . import core
 from .config import ConfigHandler
+from .data import DataStore
 from .hashing import HashHandler
 from .utility import CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
@@ -68,6 +69,9 @@ class ServerContext(object):
 
         self.logger.debug('parsing configuration...')
         self.handle_config()
+
+        # must be done after config
+        self.data = DataStore()
 
         self.logger.debug('init finished...')
 
@@ -189,6 +193,19 @@ Options:
         global running_context
         running_context = self
 
+        self.data.create_or_load()
+
         self.update_ts_callback()
-        self.eventloop.run_forever()
+
+        try:
+            self.eventloop.run_forever()
+        except KeyboardInterrupt:
+            # don't throw errors on being ctrl+c'd
+            ...
+        except:
+            raise
+        finally:
+            # always save data
+            self.data.save()
+
         exit(0)
