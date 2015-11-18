@@ -18,8 +18,17 @@
 from mammon.server import eventmgr_rfc1459
 
 @eventmgr_rfc1459.message('POST', allow_unregistered=True)
+def m_POST(cli, ev_msg):
+    cli.quit('HTTP POST command was received from IRC connection')
+
 @eventmgr_rfc1459.message('PUT', allow_unregistered=True)
+def m_PUT(cli, ev_msg):
+    cli.quit('HTTP PUT command was received from IRC connection')
+
 @eventmgr_rfc1459.message('PATCH', allow_unregistered=True)
+def m_PATCH(cli, ev_msg):
+    cli.quit('HTTP PATCH command was received from IRC connection')
+
 @eventmgr_rfc1459.message('STATUS', allow_unregistered=True)
-def m_post(cli, ev_msg):
-    cli.quit('HTTP command was received from IRC connection')
+def m_STATUS(cli, ev_msg):
+    cli.quit('HTTP STATUS command was received from IRC connection')
