@@ -148,7 +148,10 @@ class ClientProtocol(asyncio.Protocol):
         try:
             fdns = yield from self.ctx.eventloop.getaddrinfo(rdns[0], rdns[1], proto=socket.IPPROTO_TCP)
             for fdns_e in fdns:
-                if fdns_e[4][0] == self.realaddr:
+                addr = fdns_e[4][0]
+                if addr[0] == ':':
+                    addr = '0' + addr
+                if addr == self.realaddr:
                     hostname = rdns[0]
                     if validate_hostname(hostname):
                         self.dump_notice('Found your hostname: ' + hostname)
