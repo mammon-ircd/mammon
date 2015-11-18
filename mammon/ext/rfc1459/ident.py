@@ -27,8 +27,8 @@ def do_ident_check(cli):
     cli.dump_notice('Checking Ident')
 
     try:
-        local_address, local_port = cli.transport.get_extra_info('socket').getsockname()
-        remote_address, remote_port = cli.transport.get_extra_info('socket').getpeername()
+        local_address, local_port = cli.transport.get_extra_info('sockname')[:2]
+        remote_address, remote_port = cli.transport.get_extra_info('peername')[:2]
 
         reader, writer = yield from asyncio.open_connection(cli.realaddr, 113, local_addr=(local_address, 0))
 
