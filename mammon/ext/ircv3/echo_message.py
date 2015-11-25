@@ -15,7 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-import time
+from ircreactor.envelope import RFC1459Message
 
 from mammon.server import eventmgr_core, get_context
 from mammon.capability import Capability
@@ -26,6 +26,6 @@ cap_echo_message = Capability('echo-message')
 @eventmgr_core.handler('channel message', priority=10)
 def m_privmsg_client(info):
     ctx = get_context()
-    if ctx.conf.name == info['source'].servername and 'echo-message' in m.client.caps:
+    if ctx.conf.name == info['source'].servername and 'echo-message' in info['source'].caps:
         msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
         info['source'].dump_message(msg)
