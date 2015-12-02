@@ -420,11 +420,6 @@ def m_TOPIC(cli, ev_msg):
             cli.dump_numeric('442', [ch.name, "You're not on that channel"])
             continue
 
-        # XXX - if not ch.get_member(cli).props.get('topic-change', False) and
-        if not ch.props.get('op-topic'):
-            cli.dump_numeric('482', [ch.name, 'You\'re not a channel operator'])
-            continue
-
         # handle inquiry
         if len(ev_msg['params']) == 1:
             if ch.topic:
@@ -433,6 +428,11 @@ def m_TOPIC(cli, ev_msg):
                 continue
 
             cli.dump_numeric('331', [ch.name, 'No topic is set'])
+            continue
+
+        # XXX - if not ch.get_member(cli).props.get('topic-change', False) and
+        if not ch.props.get('op-topic'):
+            cli.dump_numeric('482', [ch.name, 'You\'re not a channel operator'])
             continue
 
         topic = ev_msg['params'][1]
