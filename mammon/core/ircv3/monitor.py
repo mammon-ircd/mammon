@@ -50,7 +50,7 @@ def m_MONITOR(cli, ev_msg):
 
         eventmgr_core.dispatch(' '.join(['monitor', command]), info)
     else:
-        cli.dump_numeric(400, ['MONITOR', command, 'Unknown subcommand'])
+        cli.dump_numeric('400', ['MONITOR', command, 'Unknown subcommand'])
 
 @eventmgr_core.handler(('monitor -', 'monitor +'), priority=1)
 def m_monitor_edit(info):

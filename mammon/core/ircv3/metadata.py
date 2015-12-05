@@ -220,7 +220,7 @@ def m_METADATA(cli, ev_msg):
     target_name, subcmd = ev_msg['params'][:2]
 
     if subcmd not in metadata_cmds:
-        cli.dump_numeric(400, ['METADATA', command, 'Unknown subcommand'])
+        cli.dump_numeric('400', ['METADATA', subcmd, 'Unknown subcommand'])
         return
 
     # get target
