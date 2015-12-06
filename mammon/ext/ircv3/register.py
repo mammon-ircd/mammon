@@ -30,6 +30,13 @@ def m_server_start(info):
     else:
         callbacks = ''
 
+    if not ctx.hashing.enabled:
+        ctx.logger.info('REG passphrase disabled because hashing is not available')
+        supported_cred_types.remove('passphrase')
+    if len(supported_cred_types) == 0:
+        ctx.logger.info('REG because no mechanisms are available')
+        return
+
     isupport_tokens = get_isupport()
     isupport_tokens['REGCOMMANDS'] = 'CREATE,VERIFY'
     isupport_tokens['REGCALLBACKS'] = callbacks
@@ -65,7 +72,7 @@ def m_REG(cli, ev_msg):
             cred_type = 'passphrase'
             credential = params.pop(0)
         else:
-            # not enough params
+            cli.dump_numeric('461', [ev_msg['verb'], 'Not enough parameters'])
             return
 
         if cred_type not in supported_cred_types:
@@ -97,7 +104,7 @@ def m_reg_create_empty(info):
         'account': info['account'],
         'registered': cli.ctx.current_ts,
         'credentials': {
-            'passphrase': info['credential'],
+            'passphrase': cli.ctx.hashing.encrypt(info['credential']),
         },
     })
 

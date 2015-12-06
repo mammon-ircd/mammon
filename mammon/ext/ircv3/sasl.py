@@ -16,7 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from mammon.events import eventmgr_core, eventmgr_rfc1459
-from mammon.capability import Capability
+from mammon.capability import Capability, caplist
 
 import base64
 import binascii
@@ -24,6 +24,16 @@ import binascii
 valid_mechanisms = ['PLAIN']
 
 cap_sasl = Capability('sasl', value=','.join(valid_mechanisms))
+
+@eventmgr_core.handler('server start')
+def m_sasl_start(info):
+    ctx = info['server']
+    if not ctx.hashing.enabled:
+        ctx.logger.info('SASL PLAIN disabled because hashing is not available')
+        valid_mechanisms.remove('PLAIN')
+    if len(valid_mechanisms) == 0:
+        ctx.logger.info('SASL disabled because no mechanisms are available')
+        del caplist['sasl']
 
 @eventmgr_rfc1459.message('AUTHENTICATE', min_params=1, allow_unregistered=True)
 def m_AUTHENTICATE(cli, ev_msg):
@@ -36,6 +46,11 @@ def m_AUTHENTICATE(cli, ev_msg):
         return
 
     if getattr(cli, 'sasl', None):
+        if len(ev_msg['params'][0]) > 400:
+            cli.dump_numeric('905', params=['SASL message too long'])
+            cli.sasl = None
+            return
+
         try:
             data = base64.b64decode(ev_msg['params'][0])
         except binascii.Error:
@@ -75,9 +90,13 @@ def m_sasl_plain(info):
 
     account_info = cli.ctx.data.get('account.{}'.format(account), None)
     if account_info and 'passphrase' in account_info['credentials']:
-        if passphrase == account_info['credentials']['passphrase']:
+        passphrase_hash = account_info['credentials']['passphrase']
+        if cli.ctx.hashing.verify(passphrase, passphrase_hash):
             cli.account = account
-            cli.dump_numeric('900', params=[cli.hostmask, account, 'You are now logged in as {}'.format(account)])
+            hostmask = cli.hostmask
+            if hostmask is None:
+                hostmask = '*'
+            cli.dump_numeric('900', params=[hostmask, account, 'You are now logged in as {}'.format(account)])
             cli.dump_numeric('903', params=['SASL authentication successful'])
             return
     cli.dump_numeric('904', params=['SASL authentication failed'])
