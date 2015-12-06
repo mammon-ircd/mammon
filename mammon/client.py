@@ -394,6 +394,10 @@ class ClientProtocol(asyncio.Protocol):
             cipher = self.transport.get_extra_info('cipher')
             self.dump_notice('You are connected using {1}-{0}-{2}'.format(*cipher))
 
+        eventmgr_core.dispatch('client registered', {
+            'client': self,
+        })
+
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
         self.dump_numeric('003', ['This server was started at ' + self.ctx.startstamp])
