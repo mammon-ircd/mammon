@@ -63,6 +63,14 @@ limits:
   line: 2048
 
 
+# The register object defines registration information
+register:
+
+  # callbacks - types and details for various callback methods
+  callbacks:
+    # no callback methods for now
+
+
 # Roles define the capabilities an oper may have, as well as role-specific
 # metadata.
 
@@ -209,4 +217,5 @@ extensions:
 - mammon.ext.rfc1459.ident
 - mammon.ext.ircv3.server_time
 - mammon.ext.ircv3.echo_message
+- mammon.ext.ircv3.register
 - mammon.ext.misc.nopost
