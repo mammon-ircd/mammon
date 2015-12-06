@@ -100,12 +100,12 @@ def m_reg_create_empty(info):
         return
 
     cli.ctx.data.put('account.{}'.format(info['account']), {
-        'source': cli.hostmask,
         'account': info['account'],
-        'registered': cli.ctx.current_ts,
         'credentials': {
             'passphrase': cli.ctx.hashing.encrypt(info['credential']),
         },
+        'registered': cli.ctx.current_ts,
+        'registered_by': cli.hostmask,
     })
 
     cli.dump_numeric('920', params=[info['account'], 'Account created'])
