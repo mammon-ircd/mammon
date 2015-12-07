@@ -63,6 +63,46 @@ limits:
   line: 2048
 
 
+# The register object defines registration information
+register:
+
+  # verify_timeout - length of time a user has to verify their newly-created
+  # account before it can be re-registered
+  verify_timeout:
+    days: 5
+
+  # enabled_callbacks - callbacks that we allow
+  enabled_callbacks:
+    # - mailto
+    # - none  # no verification required, will instantly register successfully
+
+  # callbacks - types and details for various callback methods
+  callbacks:
+
+    # mailto - email using sendmail
+    mailto:
+      # from - address our messages get sent from
+      from: mammon@example.com
+
+      # sendmail - location of the sendmail binary
+      sendmail: /usr/sbin/sendmail
+
+      # verify_message_subject - subject of the verify message
+      verify_message_subject: "{network_name} Account Registration"
+
+      # verify_message - message sent to users to verify their account
+      verify_message: |
+        Hi,
+        
+        You have requested to register the account {account}.
+        
+        Your verification code is {auth_code}
+        
+        Please type "/quote REG VERIFY {account} {auth_code}" to complete registration
+        
+        Thank you,
+        {network_name}
+
 # Roles define the capabilities an oper may have, as well as role-specific
 # metadata.
 
@@ -209,4 +249,6 @@ extensions:
 - mammon.ext.rfc1459.ident
 - mammon.ext.ircv3.server_time
 - mammon.ext.ircv3.echo_message
+- mammon.ext.ircv3.register
+- mammon.ext.ircv3.sasl
 - mammon.ext.misc.nopost

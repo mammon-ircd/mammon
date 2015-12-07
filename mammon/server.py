@@ -30,6 +30,7 @@ from .hashing import HashHandler
 from .utility import CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
 from .capability import caplist
+from .isupport import get_isupport
 
 import logging
 import asyncio
@@ -166,6 +167,16 @@ Options:
         self.open_logs()
         self.load_modules()
 
+        isupport_tokens = get_isupport()
+        isupport_tokens['NETWORK'] = self.conf.network
+        isupport_tokens['METADATA'] = self.conf.metadata.get('limit', True)
+        isupport_tokens['MONITOR'] = self.conf.monitor.get('limit', True)
+        isupport_tokens['NICKLEN'] = self.conf.limits.get('nick', '')
+        isupport_tokens['CHANNELLEN'] = self.conf.limits.get('channel', '')
+        isupport_tokens['TOPICLEN'] = self.conf.limits.get('topic', '')
+        isupport_tokens['LINELEN'] = self.conf.limits.get('line', '')
+        isupport_tokens['USERLEN'] = self.conf.limits.get('user', '')
+
     def open_listeners(self):
         [asyncio.async(lstn) for lstn in self.listeners]
 
@@ -196,6 +207,10 @@ Options:
         self.data.create_or_load()
 
         self.update_ts_callback()
+
+        eventmgr_core.dispatch('server start', {
+            'server': self,
+        })
 
         try:
             self.eventloop.run_forever()

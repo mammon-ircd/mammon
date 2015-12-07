@@ -25,6 +25,7 @@ from .channel import Channel
 from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq, validate_hostname
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
+from .isupport import get_isupport
 from . import __version__
 
 client_registration_locks = ['NICK', 'USER', 'DNS']
@@ -372,25 +373,13 @@ class ClientProtocol(asyncio.Protocol):
         [i.dump_numeric(numeric, params) for i in peerlist]
 
     def dump_isupport(self):
-        isupport_tokens = {
-            'NETWORK': self.ctx.conf.network,
-            'CASEMAPPING': 'rfc3454',
-            'SAFELIST': True,
-            'METADATA': self.ctx.conf.metadata.get('limit', True),
-            'MONITOR': self.ctx.conf.monitor.get('limit', True),
-            'CHANTYPES': '#',
-            'NICKLEN': self.ctx.conf.limits.get('nick', ''),
-            'CHANNELLEN': self.ctx.conf.limits.get('channel', ''),
-            'TOPICLEN': self.ctx.conf.limits.get('topic', ''),
-            'LINELEN': self.ctx.conf.limits.get('line', ''),
-            'USERLEN': self.ctx.conf.limits.get('user', ''),
-        }
-
         # XXX - split into multiple 005 lines if > 13 tokens
         def format_token(k, v):
             if isinstance(v, bool):
                 return k
             return '{0}={1}'.format(k, v)
+
+        isupport_tokens = get_isupport()
 
         self.dump_numeric('005', [format_token(k, v) for k, v in isupport_tokens.items()] + ['are supported by this server'])
 
@@ -404,6 +393,10 @@ class ClientProtocol(asyncio.Protocol):
         if self.tls:
             cipher = self.transport.get_extra_info('cipher')
             self.dump_notice('You are connected using {1}-{0}-{2}'.format(*cipher))
+
+        eventmgr_core.dispatch('client registered', {
+            'client': self,
+        })
 
         self.dump_numeric('001', ['Welcome to the ' + self.ctx.conf.network + ' IRC Network, ' + self.hostmask])
         self.dump_numeric('002', ['Your host is ' + self.ctx.conf.name + ', running version mammon-' + str(__version__)])
