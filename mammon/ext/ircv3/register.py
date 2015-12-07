@@ -25,10 +25,12 @@ from subprocess import Popen, PIPE
 global supported_cred_types
 global supported_cb_types
 global enabled_cb_types
+global verify_timeout_seconds
 
 supported_cred_types = ['passphrase']
 supported_cb_types = ['*', 'mailto']
 enabled_cb_types = []
+verify_timeout_seconds = 0
 
 def generate_auth_code():
     from passlib.utils import generate_password
@@ -64,6 +66,9 @@ def m_server_start(info):
     isupport_tokens['REGCALLBACKS'] = ','.join(isupport_cb_types)
     isupport_tokens['REGCREDTYPES'] = ','.join(supported_cred_types)
 
+    global verify_timeout_seconds
+    verify_timeout_seconds = timedelta(**cli.ctx.conf.register['verify_timeout']).total_seconds()
+
 @eventmgr_rfc1459.message('REG', min_params=3)
 def m_REG(cli, ev_msg):
     params = list(ev_msg['params'])
@@ -74,7 +79,7 @@ def m_REG(cli, ev_msg):
 
         account_data = cli.ctx.data.get('account.{}'.format(account), {})
         if account_data:
-            verify_timeout_seconds = timedelta(**cli.ctx.conf.register['verify_timeout']).total_seconds()
+            global verify_timeout_seconds
             if (account_data['verified'] or account_data['registered_ts'] + verify_timeout_seconds > cli.ctx.current_ts):
                 cli.dump_numeric('921', params=[account, 'Account already exists'])
                 return
