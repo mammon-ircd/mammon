@@ -77,6 +77,10 @@ def m_REG(cli, ev_msg):
     if subcmd == 'create':
         account = params.pop(0).casefold()
 
+        if account == '*':
+            cli.dump_numeric('922', [account, 'Invalid params: "*" is not a valid account name'])
+            return
+
         account_data = cli.ctx.data.get('account.{}'.format(account), {})
         if account_data:
             global verify_timeout_seconds
