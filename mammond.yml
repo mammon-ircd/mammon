@@ -247,6 +247,7 @@ opers:
 extensions:
 - mammon.ext.rfc1459.42
 - mammon.ext.rfc1459.ident
+- mammon.ext.ircv3.account_notify
 - mammon.ext.ircv3.server_time
 - mammon.ext.ircv3.echo_message
 - mammon.ext.ircv3.register

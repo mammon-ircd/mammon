@@ -232,9 +232,11 @@ class ClientProtocol(asyncio.Protocol):
         "Dump a NOTICE to a connected client."
         self.dump_verb('NOTICE', params=[self.nickname, '*** ' + message])
 
-    def dump_verb(self, verb, params):
+    def dump_verb(self, verb, params, source=None):
         """Dump a verb to a connected client."""
-        msg = RFC1459Message.from_data(verb, source=self.ctx.conf.name, params=params)
+        if source is None:
+            source = self.ctx.conf.name
+        msg = RFC1459Message.from_data(verb, source=source, params=params)
         self.dump_message(msg)
 
     @property
@@ -371,6 +373,12 @@ class ClientProtocol(asyncio.Protocol):
     def numericto_common_peers(self, numeric, params, **kwargs):
         peerlist = self.get_common_peers(**kwargs)
         [i.dump_numeric(numeric, params) for i in peerlist]
+
+    def verbto_common_peers(self, verb, params, source=None, **kwargs):
+        peerlist = self.get_common_peers(**kwargs)
+        if source is None:
+            source = self.ctx.conf.name
+        [i.dump_verb(verb, source=source, params=params) for i in peerlist]
 
     def dump_isupport(self):
         # XXX - split into multiple 005 lines if > 13 tokens
