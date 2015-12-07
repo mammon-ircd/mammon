@@ -88,7 +88,7 @@ register:
         
         Your verification code is {verify_code}
         
-        Please type "/quote REG VERIFY {verify_code}" to complete registration
+        Please type "/quote REG VERIFY {account} {verify_code}" to complete registration
         
         Thank you,
         {network_name}
