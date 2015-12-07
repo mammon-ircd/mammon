@@ -51,9 +51,11 @@ def m_CAP_LS(cli, ev_msg):
         cli.caps['cap-notify'] = caplist['cap-notify']
 
     l = list()
-    for cap in caplist.values():
+    caps = list(caplist.values())
+    for cap in caps:
         l.append(cap.atom(is_ircv3_2))
-        if len(l) > 8:
+        # only dump continuation line if we have more caps to go
+        if len(l) > 8 and caps.index(cap) + 1 < len(caps):
             cli.dump_numeric('CAP', ['LS', '*', ' '.join(l)])
             l = list()
 

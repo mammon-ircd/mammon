@@ -150,6 +150,10 @@ def m_REG(cli, ev_msg):
 
                 cli.dump_numeric('923', [account, 'Account verification successful'])
                 cli.account = account
+                eventmgr_core.dispatch('account change', {
+                    'source': cli,
+                    'account': account,
+                })
                 cli.dump_numeric('900', [cli.hostmask, account,
                                          'You are now logged in as {}'.format(account)])
                 cli.dump_numeric('903', ['Authentication successful'])
@@ -176,6 +180,10 @@ def m_reg_create_empty(info):
 
     cli.dump_numeric('920', [info['account'], 'Account created'])
     cli.account = info['account']
+    eventmgr_core.dispatch('account change', {
+        'source': cli,
+        'account': cli.account,
+    })
     cli.dump_numeric('900', [cli.hostmask, info['account'],
                              'You are now logged in as {}'.format(info['account'])])
     cli.dump_numeric('903', ['Authentication successful'])
