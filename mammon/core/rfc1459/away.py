@@ -60,7 +60,7 @@ def m_away_notify(info):
     params = cli.metadata.get('away', None)
     if params:
         params = [params]
-    msg = RFC1459Message.from_data('AWAY', source=cli.hostmask, params=params)
+    msg = RFC1459Message.from_data('AWAY', source=cli, params=params)
     cli.sendto_common_peers(msg, exclude=[cli], cap='away-notify')
 
 @eventmgr_core.handler('client message')

@@ -27,5 +27,5 @@ cap_echo_message = Capability('echo-message')
 def m_privmsg_client(info):
     ctx = get_context()
     if ctx.conf.name == info['source'].servername and 'echo-message' in info['source'].caps:
-        msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
+        msg = RFC1459Message.from_data('PRIVMSG', source=info['source'], params=[info['target_name'], info['message']])
         info['source'].dump_message(msg)
