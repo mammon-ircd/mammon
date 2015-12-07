@@ -94,6 +94,7 @@ def m_sasl_plain(info):
         passphrase_hash = account_info['credentials']['passphrase']
         if cli.ctx.hashing.verify(passphrase, passphrase_hash):
             cli.account = account
+            cli.sasl = None
             hostmask = cli.hostmask
             if hostmask is None:
                 hostmask = '*'
