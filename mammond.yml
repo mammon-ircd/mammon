@@ -74,7 +74,7 @@ register:
   # enabled_callbacks - callbacks that we allow
   enabled_callbacks:
     # - mailto
-    # - none  # no callback required - we recommend requiring a callout
+    # - none  # no verification required, will instantly register successfully
 
   # callbacks - types and details for various callback methods
   callbacks:
