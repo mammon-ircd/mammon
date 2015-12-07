@@ -149,14 +149,24 @@ class Channel(object):
             return True
         return self.has_member(client)
 
-    def dump_message(self, msg, exclusion_list=None, local_only=True):
+    def dump_message(self, msg, exclusion_list=None, local_only=True,
+                     cap=None, exclude_cap=None):
         if not exclusion_list:
             exclusion_list = list()
         if local_only:
             ctx = get_context()
-            [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list and m.client.servername == ctx.conf.name]
-        else:
-            [m.client.dump_message(msg) for m in self.members if m.client not in exclusion_list]
+
+        for m in self.members:
+            if m.client in exclusion_list:
+                continue
+            if local_only and m.client.servername != ctx.conf.name:
+                continue
+            if cap and cap not in m.client.caps:
+                continue
+            if exclude_cap and exclude_cap in m.client.caps:
+                continue
+
+            m.client.dump_message(msg)
 
     def set_legacy_modes(self, client, in_str, args):
 
@@ -303,6 +313,8 @@ def m_JOIN(cli, ev_msg):
         }
         eventmgr_core.dispatch('channel join', info)
 
+cap_extended_join = Capability('extended-join')
+
 @eventmgr_core.handler('channel join', priority=1)
 def m_join_channel(info):
     ch = info['channel']
@@ -310,7 +322,8 @@ def m_join_channel(info):
     ctx = get_context()
 
     ch.join(cli)
-    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]))
+    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]), exclude_cap='extended-join')
+    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name, '*' if cli.account is None else cli.account, cli.realname]), cap='extended-join')
 
     if cli.servername != ctx.conf.name:
         return
