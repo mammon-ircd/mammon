@@ -67,7 +67,7 @@ def m_server_start(info):
     isupport_tokens['REGCREDTYPES'] = ','.join(supported_cred_types)
 
     global verify_timeout_seconds
-    verify_timeout_seconds = timedelta(**cli.ctx.conf.register['verify_timeout']).total_seconds()
+    verify_timeout_seconds = timedelta(**ctx.conf.register['verify_timeout']).total_seconds()
 
 @eventmgr_rfc1459.message('REG', min_params=3)
 def m_REG(cli, ev_msg):
