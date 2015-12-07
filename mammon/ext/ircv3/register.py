@@ -27,7 +27,7 @@ supported_cb_types = ['*', 'mailto']
 global supported_cred_types
 global supported_cb_types
 
-def generate_verify_code():
+def generate_auth_code():
     from passlib.utils import generate_password
     code = generate_password(size=15)
     return code
@@ -102,6 +102,32 @@ def m_REG(cli, ev_msg):
             'cred_type': cred_type,
             'credential': credential,
         })
+    elif subcmd == 'verify':
+        account = params.pop(0).casefold()
+
+        account_info = cli.ctx.data.get('account.{}'.format(account), None)
+
+        if account_info:
+            if account_info['verified']:
+                cli.dump_numeric('924', [account, 'Account already verified'])
+                return
+
+            auth_code = params.pop(0)
+
+            if auth_code == account_info['auth_code']:
+                account_info['verified'] = True
+                del account_info['auth_code']
+                cli.ctx.data.put('account.{}'.format(account), account_info)
+
+                cli.dump_numeric('923', [account, 'Account verification successful'])
+                cli.account = account
+                cli.dump_numeric('900', [cli.hostmask, account,
+                                         'You are now logged in as {}'.format(account)])
+                cli.dump_numeric('903', ['Authentication successful'])
+            else:
+                cli.dump_numeric('925', [account, 'Invalid verification code'])
+        else:
+            cli.dump_numeric('400', ['REG', 'VERIFY', 'Account does not exist'])
     else:
         cli.dump_numeric('400', ['REG', ev_msg['params'][0], 'Unknown subcommand'])
 
@@ -134,7 +160,7 @@ def m_reg_create_empty(info):
 def m_reg_create_empty(info):
     cli = info['source']
 
-    verify_code = generate_verify_code()
+    auth_code = generate_auth_code()
 
     cli.ctx.data.put('account.{}'.format(info['account']), {
         'account': info['account'],
@@ -144,7 +170,7 @@ def m_reg_create_empty(info):
         'registered': cli.ctx.current_ts,
         'registered_by': cli.hostmask,
         'verified': False,
-        'verify_code': verify_code,
+        'auth_code': auth_code,
     })
 
     conf = cli.ctx.conf.register['callbacks']['mailto']
@@ -152,7 +178,7 @@ def m_reg_create_empty(info):
     # assemble email
     message = conf['verify_message'].format(**{
         'account': info['account'],
-        'verify_code': verify_code,
+        'auth_code': auth_code,
         'network_name': cli.ctx.conf.server['network'],
     })
 
