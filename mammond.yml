@@ -66,6 +66,11 @@ limits:
 # The register object defines registration information
 register:
 
+  # verify_timeout - length of time a user has to verify their newly-created
+  # account before it can be re-registered
+  verify_timeout:
+    days: 5
+
   # callbacks - types and details for various callback methods
   callbacks:
 
@@ -86,9 +91,9 @@ register:
         
         You have requested to register the account {account}.
         
-        Your verification code is {verify_code}
+        Your verification code is {auth_code}
         
-        Please type "/quote REG VERIFY {account} {verify_code}" to complete registration
+        Please type "/quote REG VERIFY {account} {auth_code}" to complete registration
         
         Thank you,
         {network_name}

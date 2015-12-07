@@ -18,6 +18,7 @@
 from mammon.events import eventmgr_core, eventmgr_rfc1459
 from mammon.isupport import get_isupport
 
+from datetime import timedelta
 from email.mime.text import MIMEText
 from subprocess import Popen, PIPE
 
@@ -64,9 +65,15 @@ def m_REG(cli, ev_msg):
     if subcmd == 'create':
         account = params.pop(0).casefold()
 
-        if 'account.{}'.format(account) in cli.ctx.data:
-            cli.dump_numeric('921', params=[account, 'Account already exists'])
-            return
+        account_data = cli.ctx.data.get('account.{}'.format(account), {})
+        if account_data:
+            verify_timeout_seconds = timedelta(**cli.ctx.conf.register['verify_timeout']).total_seconds()
+            if (account_data['verified'] or account_data['registered_ts'] + verify_timeout_seconds > cli.ctx.current_ts):
+                cli.dump_numeric('921', params=[account, 'Account already exists'])
+                return
+            # account verify expired, delete old account
+            if not account_data['verified']:
+                cli.ctx.data.delete('account.{}'.format(account))
 
         callback = params.pop(0).casefold()
         if callback == '*':
@@ -145,7 +152,7 @@ def m_reg_create_empty(info):
         'credentials': {
             'passphrase': cli.ctx.hashing.encrypt(info['credential']),
         },
-        'registered': cli.ctx.current_ts,
+        'registered_ts': cli.ctx.current_ts,
         'registered_by': cli.hostmask,
         'verified': True,
     })
@@ -167,7 +174,7 @@ def m_reg_create_empty(info):
         'credentials': {
             'passphrase': cli.ctx.hashing.encrypt(info['credential']),
         },
-        'registered': cli.ctx.current_ts,
+        'registered_ts': cli.ctx.current_ts,
         'registered_by': cli.hostmask,
         'verified': False,
         'auth_code': auth_code,
