@@ -89,7 +89,8 @@ def m_sasl_plain(info):
     passphrase = str(passphrase, 'utf8')
 
     account_info = cli.ctx.data.get('account.{}'.format(account), None)
-    if account_info and 'passphrase' in account_info['credentials']:
+    if (account_info and 'passphrase' in account_info['credentials'] and
+            account_info['verified']):
         passphrase_hash = account_info['credentials']['passphrase']
         if cli.ctx.hashing.verify(passphrase, passphrase_hash):
             cli.account = account
