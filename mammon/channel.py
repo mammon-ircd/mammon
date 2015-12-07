@@ -16,6 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from ircreactor.envelope import RFC1459Message
+from .capability import Capability
 from .utility import validate_chan, CaseInsensitiveDict, CaseInsensitiveList
 from .server import get_context
 from .property import member_property_items, channel_property_items, channel_flag_items
@@ -50,6 +51,15 @@ class ChannelMembership(object):
             if self.props.get(prop, False):
                 pstr += flag
         pstr += self.client.nickname
+        return pstr
+
+    @property
+    def hostmask(self):
+        pstr = str()
+        for prop, flag in member_property_items.items():
+            if self.props.get(prop, False):
+                pstr += flag
+        pstr += self.client.hostmask
         return pstr
 
     @property
@@ -352,6 +362,8 @@ def m_join_channel(info):
     ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=[ch.name, message]))
     ch.part(cli)
 
+cap_userhost_in_names = Capability('userhost-in-names')
+
 @eventmgr_rfc1459.message('NAMES', min_params=1)
 def m_NAMES(cli, ev_msg):
     chanlist = ev_msg['params'][0].split(',')
@@ -371,7 +383,10 @@ def m_NAMES(cli, ev_msg):
             names_f = lambda x: 'user:invisible' not in x.client.props
 
         # XXX - this may need to be split up if we start enforcing an outbound packet size
-        cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
+        if 'userhost-in-names' in cli.caps:
+            cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.hostmask for m in filter(names_f, ch.members)])])
+        else:
+            cli.dump_numeric('353', [ch.classification, ch.name, ' '.join([m.name for m in filter(names_f, ch.members)])])
         cli.dump_numeric('366', [ch.name, 'End of /NAMES list.'])
 
 @eventmgr_rfc1459.message('TOPIC', min_params=1, update_idle=True)
