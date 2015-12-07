@@ -81,7 +81,7 @@ def m_REG(cli, ev_msg):
         if account_data:
             global verify_timeout_seconds
             if (account_data['verified'] or account_data['registered_ts'] + verify_timeout_seconds > cli.ctx.current_ts):
-                cli.dump_numeric('921', params=[account, 'Account already exists'])
+                cli.dump_numeric('921', [account, 'Account already exists'])
                 return
             # account verify expired, delete old account
             if not account_data['verified']:
@@ -102,7 +102,7 @@ def m_REG(cli, ev_msg):
                 cb_namespace = enabled_cb_types[0]
 
         if cb_namespace not in enabled_cb_types:
-            cli.dump_numeric('929', params=[account, cb_namespace, 'Callback token is invalid'])
+            cli.dump_numeric('929', [account, cb_namespace, 'Callback token is invalid'])
             return
 
         if len(params) > 1:
@@ -116,7 +116,7 @@ def m_REG(cli, ev_msg):
 
         global supported_cred_types
         if cred_type not in supported_cred_types:
-            cli.dump_numeric('928', params=[account, cred_type, 'Credential type is invalid'])
+            cli.dump_numeric('928', [account, cred_type, 'Credential type is invalid'])
             return
 
         eventmgr_core.dispatch('reg callback {}'.format(cb_namespace), {
@@ -170,11 +170,11 @@ def m_reg_create_empty(info):
         'verified': True,
     })
 
-    cli.dump_numeric('920', params=[info['account'], 'Account created'])
+    cli.dump_numeric('920', [info['account'], 'Account created'])
     cli.account = info['account']
-    cli.dump_numeric('900', params=[cli.hostmask, info['account'],
-                                    'You are now logged in as {}'.format(info['account'])])
-    cli.dump_numeric('903', params=['Authentication successful'])
+    cli.dump_numeric('900', [cli.hostmask, info['account'],
+                             'You are now logged in as {}'.format(info['account'])])
+    cli.dump_numeric('903', ['Authentication successful'])
 
 @eventmgr_core.handler('reg callback mailto')
 def m_reg_create_empty(info):
@@ -215,5 +215,5 @@ def m_reg_create_empty(info):
     p = Popen([conf['sendmail'], '-t', '-oi'], stdin=PIPE)
     p.communicate(assembled_message.as_bytes())
 
-    cli.dump_numeric('920', params=[info['account'], 'Account created'])
-    cli.dump_numeric('927', params=[info['account'], info['callback'], 'A verification code was sent'])
+    cli.dump_numeric('920', [info['account'], 'Account created'])
+    cli.dump_numeric('927', [info['account'], info['callback'], 'A verification code was sent'])

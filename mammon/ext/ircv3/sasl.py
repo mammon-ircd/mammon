@@ -39,22 +39,22 @@ def m_sasl_start(info):
 def m_AUTHENTICATE(cli, ev_msg):
     if len(ev_msg['params']) == 1 and ev_msg['params'][0] == '*':
         if getattr(cli, 'sasl', None):
-            cli.dump_numeric('906', params=['SASL authentication aborted'])
+            cli.dump_numeric('906', ['SASL authentication aborted'])
             cli.sasl = None
         else:
-            cli.dump_numeric('904', params=['SASL authentication failed'])
+            cli.dump_numeric('904', ['SASL authentication failed'])
         return
 
     if getattr(cli, 'sasl', None):
         if len(ev_msg['params'][0]) > 400:
-            cli.dump_numeric('905', params=['SASL message too long'])
+            cli.dump_numeric('905', ['SASL message too long'])
             cli.sasl = None
             return
 
         try:
             data = base64.b64decode(ev_msg['params'][0])
         except binascii.Error:
-            cli.dump_numeric('904', params=['SASL authentication failed'])
+            cli.dump_numeric('904', ['SASL authentication failed'])
             return
 
         eventmgr_core.dispatch('sasl authenticate {}'.format(cli.sasl.casefold()), {
@@ -69,7 +69,7 @@ def m_AUTHENTICATE(cli, ev_msg):
             cli.sasl = mechanism
             cli.dump_verb('AUTHENTICATE', '+')
         else:
-            cli.dump_numeric('904', params=['SASL authentication failed'])
+            cli.dump_numeric('904', ['SASL authentication failed'])
             return
 
 @eventmgr_core.handler('client registered')
@@ -77,7 +77,7 @@ def m_sasl_unreglocked(info):
     cli = info['client']
     if getattr(cli, 'sasl', None):
         cli.sasl = None
-        cli.dump_numeric('906', params=['SASL authentication aborted'])
+        cli.dump_numeric('906', ['SASL authentication aborted'])
 
 @eventmgr_core.handler('sasl authenticate plain')
 def m_sasl_plain(info):
@@ -98,7 +98,7 @@ def m_sasl_plain(info):
             hostmask = cli.hostmask
             if hostmask is None:
                 hostmask = '*'
-            cli.dump_numeric('900', params=[hostmask, account, 'You are now logged in as {}'.format(account)])
-            cli.dump_numeric('903', params=['SASL authentication successful'])
+            cli.dump_numeric('900', [hostmask, account, 'You are now logged in as {}'.format(account)])
+            cli.dump_numeric('903', ['SASL authentication successful'])
             return
-    cli.dump_numeric('904', params=['SASL authentication failed'])
+    cli.dump_numeric('904', ['SASL authentication failed'])
