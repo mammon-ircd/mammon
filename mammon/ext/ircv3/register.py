@@ -22,11 +22,13 @@ from datetime import timedelta
 from email.mime.text import MIMEText
 from subprocess import Popen, PIPE
 
-supported_cred_types = ['passphrase']
-supported_cb_types = ['*', 'mailto']
-
 global supported_cred_types
 global supported_cb_types
+global enabled_cb_types
+
+supported_cred_types = ['passphrase']
+supported_cb_types = ['*', 'mailto']
+enabled_cb_types = []
 
 def generate_auth_code():
     from passlib.utils import generate_password
@@ -37,24 +39,29 @@ def generate_auth_code():
 def m_server_start(info):
     ctx = info['server']
 
-    if ctx.conf.register['callbacks']:
-        callbacks = ','.join(ctx.conf.register['callbacks'])
-    else:
-        callbacks = ''
-
-    global supported_cred_types
-    global supported_cb_types
-
     if not ctx.hashing.enabled:
         ctx.logger.info('REG disabled because hashing is not available')
         return
-    if len(supported_cred_types) == 0:
-        ctx.logger.info('REG disabled because no mechanisms are available')
+    if len(ctx.conf.register['enabled_callbacks']) == 0:
+        ctx.logger.info('REG disabled because no mechanisms are enabled')
         return
+
+    global supported_cred_types
+    global supported_cb_types
+    global enabled_cb_types
+
+    enabled_cb_types = []
+    isupport_cb_types = []
+    for name in ctx.conf.register['enabled_callbacks']:
+        if name == 'none':
+            enabled_cb_types.append('*')
+        else:
+            enabled_cb_types.append(name)
+            isupport_cb_types.append(name)
 
     isupport_tokens = get_isupport()
     isupport_tokens['REGCOMMANDS'] = 'CREATE,VERIFY'
-    isupport_tokens['REGCALLBACKS'] = callbacks
+    isupport_tokens['REGCALLBACKS'] = ','.join(isupport_cb_types)
     isupport_tokens['REGCREDTYPES'] = ','.join(supported_cred_types)
 
 @eventmgr_rfc1459.message('REG', min_params=3)
@@ -75,6 +82,7 @@ def m_REG(cli, ev_msg):
             if not account_data['verified']:
                 cli.ctx.data.delete('account.{}'.format(account))
 
+        global enabled_cb_types
         callback = params.pop(0).casefold()
         if callback == '*':
             cb_namespace = '*'
@@ -82,9 +90,13 @@ def m_REG(cli, ev_msg):
         elif ':' in callback:
             cb_namespace, callback = callback.split(':', 1)
         else:
-            cb_namespace = 'mailto'
+            # as in the spec, default to the first advertised callback type
+            if enabled_cb_types[0] == 'none' and len(enabled_cb_types) > 1:
+                cb_namespace = enabled_cb_types[1]
+            else:
+                cb_namespace = enabled_cb_types[0]
 
-        if cb_namespace not in supported_cb_types:
+        if cb_namespace not in enabled_cb_types:
             cli.dump_numeric('929', params=[account, cb_namespace, 'Callback token is invalid'])
             return
 
@@ -97,6 +109,7 @@ def m_REG(cli, ev_msg):
             cli.dump_numeric('461', [ev_msg['verb'], 'Not enough parameters'])
             return
 
+        global supported_cred_types
         if cred_type not in supported_cred_types:
             cli.dump_numeric('928', params=[account, cred_type, 'Credential type is invalid'])
             return
@@ -141,11 +154,6 @@ def m_REG(cli, ev_msg):
 @eventmgr_core.handler('reg callback *')
 def m_reg_create_empty(info):
     cli = info['source']
-
-    # only allow empty callback when no other callbacks exist
-    if cli.ctx.conf.register['callbacks']:
-        cli.dump_numeric('929', params=[info['account'], '*', 'Callback token is invalid'])
-        return
 
     cli.ctx.data.put('account.{}'.format(info['account']), {
         'account': info['account'],

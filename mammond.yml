@@ -71,6 +71,11 @@ register:
   verify_timeout:
     days: 5
 
+  # enabled_callbacks - callbacks that we allow
+  enabled_callbacks:
+    # - mailto
+    # - none  # no callback required - we recommend requiring a callout
+
   # callbacks - types and details for various callback methods
   callbacks:
 
