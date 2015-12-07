@@ -68,8 +68,30 @@ register:
 
   # callbacks - types and details for various callback methods
   callbacks:
-    # no callback methods for now
 
+    # mailto - email using sendmail
+    mailto:
+      # from - address our messages get sent from
+      from: mammon@example.com
+
+      # sendmail - location of the sendmail binary
+      sendmail: /usr/sbin/sendmail
+
+      # verify_message_subject - subject of the verify message
+      verify_message_subject: "{network_name} Account Registration"
+
+      # verify_message - message sent to users to verify their account
+      verify_message: |
+        Hi,
+        
+        You have requested to register the account {account}.
+        
+        Your verification code is {verify_code}
+        
+        Please type "/quote REG VERIFY {verify_code}" to complete registration
+        
+        Thank you,
+        {network_name}
 
 # Roles define the capabilities an oper may have, as well as role-specific
 # metadata.

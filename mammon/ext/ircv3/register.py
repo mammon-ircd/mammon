@@ -18,8 +18,19 @@
 from mammon.events import eventmgr_core, eventmgr_rfc1459
 from mammon.isupport import get_isupport
 
+from email.mime.text import MIMEText
+from subprocess import Popen, PIPE
+
 supported_cred_types = ['passphrase']
 supported_cb_types = ['*', 'mailto']
+
+global supported_cred_types
+global supported_cb_types
+
+def generate_verify_code():
+    from passlib.utils import generate_password
+    code = generate_password(size=15)
+    return code
 
 @eventmgr_core.handler('server start')
 def m_server_start(info):
@@ -30,11 +41,14 @@ def m_server_start(info):
     else:
         callbacks = ''
 
+    global supported_cred_types
+    global supported_cb_types
+
     if not ctx.hashing.enabled:
-        ctx.logger.info('REG passphrase disabled because hashing is not available')
-        supported_cred_types.remove('passphrase')
+        ctx.logger.info('REG disabled because hashing is not available')
+        return
     if len(supported_cred_types) == 0:
-        ctx.logger.info('REG because no mechanisms are available')
+        ctx.logger.info('REG disabled because no mechanisms are available')
         return
 
     isupport_tokens = get_isupport()
@@ -52,6 +66,7 @@ def m_REG(cli, ev_msg):
 
         if 'account.{}'.format(account) in cli.ctx.data:
             cli.dump_numeric('921', params=[account, 'Account already exists'])
+            return
 
         callback = params.pop(0).casefold()
         if callback == '*':
@@ -106,6 +121,7 @@ def m_reg_create_empty(info):
         },
         'registered': cli.ctx.current_ts,
         'registered_by': cli.hostmask,
+        'verified': True,
     })
 
     cli.dump_numeric('920', params=[info['account'], 'Account created'])
@@ -113,3 +129,45 @@ def m_reg_create_empty(info):
     cli.dump_numeric('900', params=[cli.hostmask, info['account'],
                                     'You are now logged in as {}'.format(info['account'])])
     cli.dump_numeric('903', params=['Authentication successful'])
+
+@eventmgr_core.handler('reg callback mailto')
+def m_reg_create_empty(info):
+    cli = info['source']
+
+    verify_code = generate_verify_code()
+
+    cli.ctx.data.put('account.{}'.format(info['account']), {
+        'account': info['account'],
+        'credentials': {
+            'passphrase': cli.ctx.hashing.encrypt(info['credential']),
+        },
+        'registered': cli.ctx.current_ts,
+        'registered_by': cli.hostmask,
+        'verified': False,
+        'verify_code': verify_code,
+    })
+
+    conf = cli.ctx.conf.register['callbacks']['mailto']
+
+    # assemble email
+    message = conf['verify_message'].format(**{
+        'account': info['account'],
+        'verify_code': verify_code,
+        'network_name': cli.ctx.conf.server['network'],
+    })
+
+    assembled_message = MIMEText(message)
+
+    assembled_message['From'] = conf['from']
+    assembled_message['To'] = info['callback']
+    assembled_message['Subject'] = conf['verify_message_subject'].format(**{
+        'account': info['account'],
+        'network_name': cli.ctx.conf.server['network'],
+    })
+
+    # send message
+    p = Popen([conf['sendmail'], '-t', '-oi'], stdin=PIPE)
+    p.communicate(assembled_message.as_bytes())
+
+    cli.dump_numeric('920', params=[info['account'], 'Account created'])
+    cli.dump_numeric('927', params=[info['account'], info['callback'], 'A verification code was sent'])
