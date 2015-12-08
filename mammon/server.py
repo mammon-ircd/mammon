@@ -207,6 +207,7 @@ Options:
         self.data.create_or_load()
 
         self.update_ts_callback()
+        self.data.save_callback()
 
         eventmgr_core.dispatch('server start', {
             'server': self,

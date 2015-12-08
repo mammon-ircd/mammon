@@ -15,6 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+from datetime import timedelta
 import json
 import os
 import threading
@@ -26,23 +27,37 @@ class DataStore:
         ctx = get_context()
         self.format = ctx.conf.data['format']
 
+        ctx.logger.debug('creating/loading datastore using {}'.format(self.format))
+
         if self.format == 'json':
             self._store = {}
             self._store_lock = threading.Lock()
 
             self._filename = os.path.abspath(os.path.expanduser(ctx.conf.data['filename']))
+            self._tmp_filename = self._filename + '.tmp'
 
             ctx.logger.debug('loading json data store from {}'.format(self._filename))
 
             if os.path.exists(self._filename):
                 self._store = json.loads(open(self._filename, 'r').read())
+
+            self._save_frequency = timedelta(**ctx.conf.data['save_frequency']).total_seconds()
         else:
             raise Exception('Data store format [{}] not recognised'.format(self.format))
 
-    def save(self):
+    def save_callback(self):
         if self.format == 'json':
-            with open(self._filename, 'w') as store_file:
+            self.save()
+            ctx = get_context()
+            ctx.eventloop.call_later(self._save_frequency, self.save_callback)
+
+    def save(self):
+        ctx = get_context()
+        ctx.logger.debug('saving datastore')
+        if self.format == 'json':
+            with open(self._tmp_filename, 'w') as store_file:
                 store_file.write(json.dumps(self._store))
+            os.rename(self._tmp_filename, self._filename)
         else:
             raise Exception('Data store format [{}] not recognised'.format(self.format))
 

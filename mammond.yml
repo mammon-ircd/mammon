@@ -27,6 +27,10 @@ data:
   # filename - data store filename
   filename: ".mammon.data.json"
 
+  # save_frequency - save the database every this amount of time
+  save_frequency:
+    minutes: 5
+
 
 # The listeners object is a list of listeners.
 listeners:
