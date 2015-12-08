@@ -358,7 +358,7 @@ class ClientProtocol(asyncio.Protocol):
 
     def get_common_peers(self, exclude=[], cap=None):
         if cap:
-            base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude and cap in i.client.caps] + [self]
+            base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude and cap in i.client.caps] + [self] if cap in self.caps else []
         else:
             base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude] + [self]
         peerlist = uniq(base)
