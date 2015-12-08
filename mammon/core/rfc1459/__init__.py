@@ -339,7 +339,8 @@ def m_WHOIS(cli, ev_msg):
     if cli_tg.role:
         cli.dump_numeric('313', [cli_tg.nickname, cli_tg.role.whois_line])
     if cli_tg.account:
-        cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account.name, 'is logged in as'])
+        # XXX - update if needed when account objects are implemented
+        cli.dump_numeric('330', [cli_tg.nickname, cli_tg.account, 'is logged in as'])
     if (cli.props.get('special:oper') or cli == cli_tg) and cli_tg.hostname != cli_tg.realaddr:
         cli.dump_numeric('338', [cli_tg.nickname, cli_tg.realaddr, 'actually using host'])
     awaymsg = cli_tg.metadata.get('away', None)
