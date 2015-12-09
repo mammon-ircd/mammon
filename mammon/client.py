@@ -56,6 +56,7 @@ class ClientProtocol(asyncio.Protocol):
 
         self.transport = transport
         self.recvq = list()
+        self.recv_buffer = b''
         self.channels = list()
         self.nickname = '*'
         self.username = str()
@@ -170,7 +171,15 @@ class ClientProtocol(asyncio.Protocol):
         self.release_registration_lock('DNS')
 
     def data_received(self, data):
-        [self.message_received(m) for m in data.splitlines()]
+        self.recv_buffer += data
+        recvd = self.recv_buffer.replace(b'\r', b'').split(b'\n')
+        self.recv_buffer = recvd.pop(-1)
+
+        linelen = self.ctx.conf.limits.get('line', None)
+        if linelen and len(self.recv_buffer) > linelen:
+            self.recv_buffer = self.recv_buffer[:linelen]
+
+        [self.message_received(m) for m in recvd]
 
     def message_received(self, data):
         data = data.decode('UTF-8', 'replace').strip('\r\n')
