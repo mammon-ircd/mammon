@@ -22,4 +22,4 @@ cap_account_notify = Capability('account-notify')
 
 @eventmgr_core.handler('account change')
 def m_account_notify(info):
-    info['source'].verbto_common_peers('ACCOUNT', source=info['source'].hostmask, params=['*' if info['account'] is None else info['account']], cap='account-notify')
+    info['source'].verbto_common_peers('ACCOUNT', source=info['source'], params=['*' if info['account'] is None else info['account']], cap='account-notify')

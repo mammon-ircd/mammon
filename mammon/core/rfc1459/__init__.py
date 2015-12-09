@@ -118,7 +118,7 @@ def m_NICK(cli, ev_msg):
     if new_nickname in cli.ctx.clients:
         cli.dump_numeric('433', [new_nickname, 'Nickname already in use'])
         return
-    msg = RFC1459Message.from_data('NICK', source=cli.hostmask, params=[new_nickname])
+    msg = RFC1459Message.from_data('NICK', source=cli, params=[new_nickname])
     if cli.registered:
         if cli.nickname in cli.ctx.clients:
             cli.ctx.clients.pop(cli.nickname)
@@ -201,12 +201,12 @@ def m_PRIVMSG(cli, ev_msg):
 def m_privmsg_client(info):
     ctx = get_context()
     if ctx.conf.name == info['target'].servername:
-        msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
+        msg = RFC1459Message.from_data('PRIVMSG', source=info['source'], params=[info['target_name'], info['message']])
         info['target'].dump_message(msg)
 
 @eventmgr_core.handler('channel message')
 def m_privmsg_channel(info):
-    msg = RFC1459Message.from_data('PRIVMSG', source=info['source'].hostmask, params=[info['target_name'], info['message']])
+    msg = RFC1459Message.from_data('PRIVMSG', source=info['source'], params=[info['target_name'], info['message']])
     # XXX - when we have s2s, make sure we only dump messages to local clients here or in dump_message
     info['target'].dump_message(msg, exclusion_list=[info['source']])
 
@@ -220,7 +220,7 @@ def m_NOTICE(cli, ev_msg):
             cli_tg = cli.ctx.clients.get(target, None)
             if not cli_tg:
                 continue
-            msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[cli_tg.nickname, message])
+            msg = RFC1459Message.from_data('NOTICE', source=cli, params=[cli_tg.nickname, message])
             cli_tg.dump_message(msg)
             continue
 
@@ -228,7 +228,7 @@ def m_NOTICE(cli, ev_msg):
         if not ch or not ch.can_send(cli):
             continue
 
-        msg = RFC1459Message.from_data('NOTICE', source=cli.hostmask, params=[ch.name, message])
+        msg = RFC1459Message.from_data('NOTICE', source=cli, params=[ch.name, message])
         ch.dump_message(msg, exclusion_list=[cli])
 
 @eventmgr_rfc1459.message('MOTD')

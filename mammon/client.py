@@ -21,6 +21,7 @@ import socket
 import copy
 
 from ircreactor.envelope import RFC1459Message
+from .capability import Capability
 from .channel import Channel
 from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq, validate_hostname
 from .property import user_property_items, user_mode_items
@@ -28,6 +29,7 @@ from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from .isupport import get_isupport
 from . import __version__
 
+cap_account_tag = Capability('account-tag')
 client_registration_locks = ['NICK', 'USER', 'DNS']
 
 class ClientHistoryEntry(object):
@@ -208,15 +210,27 @@ class ClientProtocol(asyncio.Protocol):
 
     # handle a mandatory side effect resulting from rfc1459.
     def handle_side_effect(self, msg, params=[]):
-        m = RFC1459Message.from_data(msg, source=self.hostmask, params=params)
+        m = RFC1459Message.from_data(msg, source=self, params=params)
         m.client = self
         self.eventmgr.dispatch(*m.to_event())
+
+    def __deepcopy__(self, memo):
+        # XXX - so dump_message works, we don't actually need to return a deep copy
+        return self
 
     def dump_message(self, m):
         """Dumps an RFC1459 format message to the socket.
         Side effect: we actually operate on a copy of the message, because the message may have different optional
         mutations depending on capabilities and broadcast target."""
         out_m = copy.deepcopy(m)
+
+        if isinstance(out_m.source, ClientProtocol):
+            if 'account-tag' in self.caps:
+                if out_m.source.account is None:
+                    out_m.tags['account'] = '*'
+                else:
+                    out_m.tags['account'] = out_m.source.account
+            out_m.source = out_m.source.hostmask
 
         out_m.client = self
         eventmgr_core.dispatch('outbound message postprocess', out_m)
@@ -277,7 +291,7 @@ class ClientProtocol(asyncio.Protocol):
             'reason': reason,
         })
 
-        m = RFC1459Message.from_data('KILL', source=source.hostmask, params=[self.nickname, reason])
+        m = RFC1459Message.from_data('KILL', source=source, params=[self.nickname, reason])
         self.dump_message(m)
         self.quit('Killed ({source} ({reason}))'.format(source=source.nickname, reason=reason))
 
@@ -287,7 +301,7 @@ class ClientProtocol(asyncio.Protocol):
             'message': message,
         })
 
-        m = RFC1459Message.from_data('QUIT', source=self.hostmask, params=[message])
+        m = RFC1459Message.from_data('QUIT', source=self, params=[message])
         self.sendto_common_peers(m)
         self.exit()
 
@@ -362,7 +376,7 @@ class ClientProtocol(asyncio.Protocol):
                     out += '+'
                     out += user_property_items[i]
 
-        msg = RFC1459Message.from_data('MODE', source=self.hostmask, params=[self.nickname, out])
+        msg = RFC1459Message.from_data('MODE', source=self, params=[self.nickname, out])
         self.dump_message(msg)
 
     def get_common_peers(self, exclude=[], cap=None):

@@ -266,7 +266,7 @@ class Channel(object):
                     if after.get(i, False) != True:
                         args.append(after.get(i))
         if len(out) > 0:
-            msg = RFC1459Message.from_data('MODE', source=cli.hostmask, params=[self.name, out] + args)
+            msg = RFC1459Message.from_data('MODE', source=cli, params=[self.name, out] + args)
             self.dump_message(msg)
 
     @property
@@ -322,8 +322,8 @@ def m_join_channel(info):
     ctx = get_context()
 
     ch.join(cli)
-    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name]), exclude_cap='extended-join')
-    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli.hostmask, params=[ch.name, '*' if cli.account is None else cli.account, cli.realname]), cap='extended-join')
+    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli, params=[ch.name]), exclude_cap='extended-join')
+    ch.dump_message(RFC1459Message.from_data('JOIN', source=cli, params=[ch.name, '*' if cli.account is None else cli.account, cli.realname]), cap='extended-join')
 
     if cli.servername != ctx.conf.name:
         return
@@ -372,7 +372,7 @@ def m_join_channel(info):
 
     ctx = get_context()
 
-    ch.dump_message(RFC1459Message.from_data('PART', source=cli.hostmask, params=[ch.name, message]))
+    ch.dump_message(RFC1459Message.from_data('PART', source=cli, params=[ch.name, message]))
     ch.part(cli)
 
 cap_userhost_in_names = Capability('userhost-in-names')
@@ -448,7 +448,7 @@ def m_TOPIC(cli, ev_msg):
         ch.topic_ts = cli.ctx.current_ts
 
         # distribute new topic to peers
-        ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli.hostmask, params=[ch.name, ch.topic]))
+        ch.dump_message(RFC1459Message.from_data('TOPIC', source=cli, params=[ch.name, ch.topic]))
 
 # XXX - handle ELIST
 @eventmgr_rfc1459.message('LIST')
