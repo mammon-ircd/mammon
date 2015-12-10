@@ -32,11 +32,13 @@ from .channel import ChannelManager
 from .capability import caplist
 from .isupport import get_isupport
 
+import functools
 import logging
 import asyncio
 import sys
 import time
 import os
+import signal
 import importlib
 from getpass import getpass
 
@@ -49,6 +51,7 @@ class ServerContext(object):
     config_name = 'mammond.yml'
     nofork = False
     current_ts = None
+    shutting_down = False
 
     def __init__(self):
         self.logger = logging.getLogger('')
@@ -200,6 +203,20 @@ Options:
         self.update_ts()
         self.eventloop.call_later(1, self.update_ts_callback)
 
+    def shutdown(self, reason):
+        self.shutting_down = True
+        self.logger.info('server shutting down: {}'.format(reason))
+
+        for client in list(self.clients.values()):
+            if client.connected:
+                client.dump_notice('Server Terminating. {}'.format(reason))
+            client.exit()
+
+        self.eventloop.stop()
+
+    def handle_signal(self, signame):
+        self.shutdown('Received {}'.format(signame))
+
     def run(self):
         global running_context
         running_context = self
@@ -213,11 +230,12 @@ Options:
             'server': self,
         })
 
+        for signame in ('SIGINT', 'SIGTERM'):
+            handler = functools.partial(self.handle_signal, signame)
+            self.eventloop.add_signal_handler(getattr(signal, signame), handler)
+
         try:
             self.eventloop.run_forever()
-        except KeyboardInterrupt:
-            # don't throw errors on being ctrl+c'd
-            ...
         except:
             raise
         finally:
