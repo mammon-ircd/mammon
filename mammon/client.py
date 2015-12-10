@@ -50,6 +50,11 @@ class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.ctx = get_context()
 
+        if self.ctx.shutting_down:
+            self.connected = False
+            transport.close()
+            return
+
         self.peername = transport.get_extra_info('peername')
         if self.peername[0][0] == ':':
             pn = list(self.peername)
