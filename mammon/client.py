@@ -19,6 +19,7 @@ import asyncio
 import time
 import socket
 import copy
+import functools
 
 from ircreactor.envelope import RFC1459Message
 from .capability import Capability
@@ -44,7 +45,6 @@ class ClientHistoryEntry(object):
     def register(self):
         self.ctx.client_history[self.nickname] = self
 
-# XXX - handle ping timeout
 # XXX - quit() could eventually be handled using self.eventmgr.dispatch()
 class ClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
@@ -93,6 +93,12 @@ class ClientProtocol(asyncio.Protocol):
         if self.tls:
             self.props['special:tls'] = True
 
+        self.ping_cookie = None
+        self.ping_timeout_handler = functools.partial(self.quit, 'Ping timeout: {} seconds'.format(int(self.ctx.ping_timeout)))
+        self.ping_future = None
+        self.ping_timeout_future = None
+        self.update_pings()
+
         asyncio.async(self.do_rdns_check())
         eventmgr_core.dispatch('client reglocked', {
             'client': self,
@@ -100,6 +106,19 @@ class ClientProtocol(asyncio.Protocol):
 
     def update_idle(self):
         self.last_event_ts = self.ctx.current_ts
+        self.update_pings()
+
+    def update_pings(self):
+        if self.ping_future:
+            self.ping_future.cancel()
+        self.ping_future = self.ctx.eventloop.call_later(self.ctx.ping_frequency, self.dump_ping)
+        if self.ping_timeout_future:
+            self.ping_timeout_future.cancel()
+        self.ping_timeout_future = self.ctx.eventloop.call_later(self.ctx.ping_timeout, self.ping_timeout_handler)
+
+    def dump_ping(self):
+        self.ping_cookie = int(self.ctx.current_ts)
+        self.dump_verb('PING', params=[str(self.ping_cookie)])
 
     @property
     def role(self):
@@ -311,6 +330,11 @@ class ClientProtocol(asyncio.Protocol):
         self.exit()
 
     def exit(self):
+        if self.ping_future:
+            self.ping_future.cancel()
+        if self.ping_timeout_future:
+            self.ping_timeout_future.cancel()
+
         self.connected = False
         self.transport.close()
         if not self.registered:

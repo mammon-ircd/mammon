@@ -143,12 +143,14 @@ def m_PING(cli, ev_msg):
     reply = ev_msg['params'][0] if ev_msg['params'] else cli.ctx.conf.name
     msg = RFC1459Message.from_data('PONG', source=cli.ctx.conf.name, params=[reply])
     cli.dump_message(msg)
+    cli.update_pings()
 
 @eventmgr_rfc1459.message('PONG', min_params=1, allow_unregistered=True)
 def m_PONG(cli, ev_msg):
     if cli.ping_cookie and int(ev_msg['params'][0]) != cli.ping_cookie:
         return
     cli.last_pong = cli.ctx.current_ts
+    cli.update_pings()
 
 @eventmgr_rfc1459.message('INFO')
 def m_INFO(cli, ev_msg):
