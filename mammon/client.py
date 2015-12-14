@@ -269,10 +269,12 @@ class ClientProtocol(asyncio.Protocol):
 
         self.transport.write(bytes(message + '\r\n', 'UTF-8'))
 
-    def dump_numeric(self, numeric, params):
+    def dump_numeric(self, numeric, params, add_target=True):
         """Dump a numeric to a connected client.
         This includes the `target` field that numerics have for routing.  You do *not* need to include it."""
-        msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=[self.nickname] + params)
+        if add_target:
+            params = [self.nickname] + params
+        msg = RFC1459Message.from_data(numeric, source=self.ctx.conf.name, params=params)
         self.dump_message(msg)
 
     def dump_notice(self, message):
@@ -414,7 +416,7 @@ class ClientProtocol(asyncio.Protocol):
         else:
             base = [i.client for m in self.channels for i in m.channel.members if i.client not in exclude] + [self]
         peerlist = uniq(base)
-        if self in exclude:
+        if self in exclude and self in peerlist:
             peerlist.remove(self)
         return peerlist
 
@@ -422,9 +424,9 @@ class ClientProtocol(asyncio.Protocol):
         peerlist = self.get_common_peers(**kwargs)
         [i.dump_message(message) for i in peerlist]
 
-    def numericto_common_peers(self, numeric, params, **kwargs):
+    def numericto_common_peers(self, numeric, params, add_target=True, **kwargs):
         peerlist = self.get_common_peers(**kwargs)
-        [i.dump_numeric(numeric, params) for i in peerlist]
+        [i.dump_numeric(numeric, params, add_target=add_target) for i in peerlist]
 
     def verbto_common_peers(self, verb, params, source=None, **kwargs):
         peerlist = self.get_common_peers(**kwargs)
