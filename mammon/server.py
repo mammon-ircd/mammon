@@ -36,6 +36,7 @@ import functools
 import logging
 import asyncio
 import sys
+import datetime
 import time
 import os
 import signal
@@ -179,6 +180,9 @@ Options:
         isupport_tokens['TOPICLEN'] = self.conf.limits.get('topic', '')
         isupport_tokens['LINELEN'] = self.conf.limits.get('line', '')
         isupport_tokens['USERLEN'] = self.conf.limits.get('user', '')
+
+        self.ping_frequency = datetime.timedelta(**self.conf.clients['ping_frequency']).total_seconds()
+        self.ping_timeout = datetime.timedelta(**self.conf.clients['ping_timeout']).total_seconds()
 
     def open_listeners(self):
         [asyncio.async(lstn) for lstn in self.listeners]

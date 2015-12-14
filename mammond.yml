@@ -17,6 +17,17 @@ server:
   - "This is mammond's default motd.  You can change it in mammond.yml."
 
 
+# The clients object defines client parameters
+clients:
+  # ping_frequency - client ping frequency
+  ping_frequency:
+    minutes: 1
+
+  # ping_timeout - ping timeout length
+  ping_timeout:
+    minutes: 2
+
+
 # The data object defines the data store parameters
 data:
 
