@@ -49,7 +49,7 @@ def metadata_GET(cli, ev_msg, target_name, target):
                 if cli.role and key in cli.role.metakeys_get:
                     visibility = 'server:restricted'
                 else:
-                    cli.dump_numeric('766', [key, 'no matching keys'], add_target=False)
+                    cli.dump_numeric('766', [target_name, key, 'no matching keys'], add_target=False)
                     continue
 
             # XXX - make sure user has privs to set this key through channel ACL
@@ -61,7 +61,7 @@ def metadata_GET(cli, ev_msg, target_name, target):
         elif not validate_metadata_key(key):
             cli.dump_numeric('767', [key, 'invalid metadata key'], add_target=False)
         else:
-            cli.dump_numeric('766', [key, 'no matching keys'], add_target=False)
+            cli.dump_numeric('766', [target_name, key, 'no matching keys'], add_target=False)
 
 def metadata_LIST(cli, ev_msg, target_name, target):
     for key, visibility in get_visible_keys(cli, target):
