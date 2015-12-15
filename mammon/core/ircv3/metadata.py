@@ -49,7 +49,7 @@ def metadata_GET(cli, ev_msg, target_name, target):
                 if cli.role and key in cli.role.metakeys_get:
                     visibility = 'server:restricted'
                 else:
-                    cli.dump_numeric('766', [key, 'no matching keys'])
+                    cli.dump_numeric('766', [target_name, key, 'no matching keys'], add_target=False)
                     continue
 
             # XXX - make sure user has privs to set this key through channel ACL
@@ -57,11 +57,11 @@ def metadata_GET(cli, ev_msg, target_name, target):
             args = [target_name, key, visibility]
             if isinstance(target.metadata[key], str):
                 args.append(target.metadata[key])
-            cli.dump_numeric('761', args)
+            cli.dump_numeric('761', args, add_target=False)
         elif not validate_metadata_key(key):
-            cli.dump_numeric('767', [key, 'invalid metadata key'])
+            cli.dump_numeric('767', [key, 'invalid metadata key'], add_target=False)
         else:
-            cli.dump_numeric('766', [key, 'no matching keys'])
+            cli.dump_numeric('766', [target_name, key, 'no matching keys'], add_target=False)
 
 def metadata_LIST(cli, ev_msg, target_name, target):
     for key, visibility in get_visible_keys(cli, target):
@@ -71,9 +71,9 @@ def metadata_LIST(cli, ev_msg, target_name, target):
         if isinstance(data, str):
             args.append(data)
 
-        cli.dump_numeric('761', args)
+        cli.dump_numeric('761', args, add_target=False)
 
-    cli.dump_numeric('762', ['end of metadata'])
+    cli.dump_numeric('762', ['end of metadata'], add_target=False)
 
 def get_visible_keys(cli, target):
     visible_keys = []
@@ -106,7 +106,7 @@ def metadata_SET(cli, ev_msg, target_name, target):
 
     # check user has permission for target
     if not cli.able_to_edit_metadata(target):
-        cli.dump_numeric('769', [target_name, '*', 'permission denied'])
+        cli.dump_numeric('769', [target_name, '*', 'permission denied'], add_target=False)
         return
 
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
@@ -122,7 +122,7 @@ def metadata_SET(cli, ev_msg, target_name, target):
                 is_valid = True
 
     if not is_valid:
-        cli.dump_numeric('767', [key, 'invalid metadata key'])
+        cli.dump_numeric('767', [key, 'invalid metadata key'], add_target=False)
         return
 
     # check restricted keys
@@ -137,7 +137,7 @@ def metadata_SET(cli, ev_msg, target_name, target):
     # XXX - make sure user has privs to set this key through channel ACL
 
     if key_restricted:
-        cli.dump_numeric('769', [target_name, key, 'permission denied'])
+        cli.dump_numeric('769', [target_name, key, 'permission denied'], add_target=False)
         return
 
     # if setting a new, non-restricted key, take metadata limits into account
@@ -148,7 +148,7 @@ def metadata_SET(cli, ev_msg, target_name, target):
             limit = cli.ctx.conf.metadata.get('limit', None)
             if limit is not None:
                 if len(target.user_set_metadata) + 1 > limit:
-                    cli.dump_numeric('764', [target_name, 'metadata limit reached'])
+                    cli.dump_numeric('764', [target_name, 'metadata limit reached'], add_target=False)
                     return
 
     # throw change
@@ -165,7 +165,7 @@ def metadata_SET(cli, ev_msg, target_name, target):
 def metadata_CLEAR(cli, ev_msg, target_name, target):
     # check user has permission for target
     if not cli.able_to_edit_metadata(target):
-        cli.dump_numeric('769', [target_name, '*', 'permission denied'])
+        cli.dump_numeric('769', [target_name, '*', 'permission denied'], add_target=False)
         return
 
     restricted_keys = cli.ctx.conf.metadata.get('restricted_keys', [])
@@ -232,7 +232,7 @@ def m_METADATA(cli, ev_msg):
             target = cli.ctx.clients.get(target_name, None)
 
     if target is None:
-        cli.dump_numeric('765', [target_name, 'invalid metadata target'])
+        cli.dump_numeric('765', [target_name, 'invalid metadata target'], add_target=False)
         return
 
     metadata_cmds[subcmd](cli, ev_msg, target_name, target)
@@ -297,7 +297,7 @@ def m_metadata_clear(info):
         visibility = kinfo['visibility']
 
         args = [target_name, key, visibility]
-        source.dump_numeric('761', args)
+        source.dump_numeric('761', args, add_target=False)
 
         # create event to actually remove key and dump notify
         info = {
@@ -309,7 +309,7 @@ def m_metadata_clear(info):
         }
         eventmgr_core.dispatch('metadata delete', info)
 
-    source.dump_numeric('762', ['end of metadata'])
+    source.dump_numeric('762', ['end of metadata'], add_target=False)
 
 @eventmgr_core.handler('metadata delete', priority=1)
 def m_metadata_delete(info):
@@ -341,8 +341,8 @@ def m_metadata_set(info):
 
     # if local client, dump numerics
     if source.servername == ctx.conf.name:
-        source.dump_numeric('761', args)
-        source.dump_numeric('762', ['end of metadata'])
+        source.dump_numeric('761', args, add_target=False)
+        source.dump_numeric('762', ['end of metadata'], add_target=False)
 
     # sendto monitoring clients
     dump_metadata_notify(source, target, key, args)
