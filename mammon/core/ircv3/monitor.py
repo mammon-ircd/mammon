@@ -15,9 +15,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from mammon.client import ClientProtocol
 from mammon.server import eventmgr_core, eventmgr_rfc1459, get_context
-from mammon.utility import validate_nick, CaseInsensitiveDict, CaseInsensitiveList
+from mammon.utility import validate_nick, CaseInsensitiveDict
 
 monitored = CaseInsensitiveDict()
 
@@ -36,7 +35,7 @@ def m_MONITOR(cli, ev_msg):
         limit = cli.ctx.conf.monitor.get('limit', None)
         if command == '+' and limit is not None:
             if len([c for c in cli.monitoring if validate_nick(c)]) + len(ev_msg['params'][1].split(',')) > limit:
-                cli.dump_numeric('734', [cli.nickname, str(limit), ev_msg['params'][1], 'Monitor list is full'])
+                cli.dump_numeric('734', [str(limit), ev_msg['params'][1], 'Monitor list is full'])
                 return
 
         if command in '-+':
@@ -54,39 +53,65 @@ def m_MONITOR(cli, ev_msg):
 
 @eventmgr_core.handler(('monitor -', 'monitor +'), priority=1)
 def m_monitor_edit(info):
+    ctx = get_context()
+    cli = info['client']
+    if info['command'] == '+':
+        online = []
+        offline = []
+
     for target in info['targets']:
         if target not in monitored:
             monitored[target] = []
 
         if info['command'] == '+':
-            monitored[target].append(info['client'])
-            info['client'].monitoring.append(target)
+            if cli not in monitored[target]:
+                monitored[target].append(cli)
+            if target not in cli.monitoring:
+                cli.monitoring.append(target)
+
+            if target in ctx.clients:
+                online.append(target)
+            else:
+                offline.append(target)
 
         elif info['command'] == '-':
-            monitored[target].remove(info['client'])
-            info['client'].monitoring.remove(target)
+            try:
+                monitored[target].remove(cli)
+            except ValueError:
+                pass
+            try:
+                cli.monitoring.remove(target)
+            except ValueError:
+                pass
+
+    if online:
+        cli.dump_numeric('730', [','.join(online)])
+    if offline:
+        cli.dump_numeric('731', [','.join(offline)])
 
 @eventmgr_core.handler('monitor c', priority=1)
 def m_monitor_clear(info):
-    for target in info['client'].monitoring:
-        monitored[target].remove(info['client'])
-    info['client'].monitoring = []
+    cli = info['client']
+    for target in cli.monitoring:
+        if validate_nick(target):
+            monitored[target].remove(cli)
+    cli.monitoring = [c for c in cli.monitoring if not validate_nick(c)]
 
 @eventmgr_core.handler('monitor l', priority=1, local_client='client')
 def m_monitor_list(info):
-    client = info['client']
-    client.dump_numeric('732', [info['client'].nickname, ','.join(client.monitoring)])
-    client.dump_numeric('733', [info['client'].nickname, 'End of MONITOR list'])
+    cli = info['client']
+    cli.dump_numeric('732', [','.join([c for c in cli.monitoring if validate_nick(c)])])
+    cli.dump_numeric('733', ['End of MONITOR list'])
 
 @eventmgr_core.handler('monitor s', priority=1, local_client='client')
 def m_monitor_status(info):
     ctx = get_context()
-    client = info['client']
+    cli = info['client']
 
     online = []
     offline = []
 
-    for target in client.monitoring:
+    for target in cli.monitoring:
         if validate_nick(target):
             if target in ctx.clients:
                 online.append(target)
@@ -94,9 +119,9 @@ def m_monitor_status(info):
                 offline.append(target)
 
     if online:
-        client.dump_numeric('730', [info['client'].nickname, ','.join(online)])
+        cli.dump_numeric('730', [','.join(online)])
     if offline:
-        client.dump_numeric('731', [info['client'].nickname, ','.join(offline)])
+        cli.dump_numeric('731', [','.join(offline)])
 
 @eventmgr_core.handler('client connect')
 def m_monitor_handle_connect(info):
@@ -104,7 +129,7 @@ def m_monitor_handle_connect(info):
     nick = info['client'].nickname
     for client in monitored.get(nick, []):
         if client.servername == ctx.conf.name:
-            client.dump_numeric('730', [info['client'].nickname, info['client'].nickname])
+            client.dump_numeric('730', [nick])
 
 @eventmgr_core.handler('client quit')
 def m_monitor_handle_quit(info):
@@ -112,4 +137,4 @@ def m_monitor_handle_quit(info):
     nick = info['client'].nickname
     for client in monitored.get(nick, []):
         if client.servername == ctx.conf.name:
-            client.dump_numeric('731', [info['client'].nickname, info['client'].nickname])
+            client.dump_numeric('731', [nick])
