@@ -44,7 +44,7 @@ def m_server_start(info):
     if not ctx.hashing.enabled:
         ctx.logger.info('REG disabled because hashing is not available')
         return
-    if len(ctx.conf.register['enabled_callbacks']) == 0:
+    if not ctx.conf.register.get('enabled_callbacks', None):
         ctx.logger.info('REG disabled because no mechanisms are enabled')
         return
 
