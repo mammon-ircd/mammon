@@ -118,7 +118,7 @@ class ClientProtocol(asyncio.Protocol):
 
     def dump_ping(self):
         self.ping_cookie = int(self.ctx.current_ts)
-        self.dump_verb('PING', params=[str(self.ping_cookie)])
+        self.dump_verb('PING', params=[str(self.ping_cookie)], unprefixed=True)
 
     @property
     def role(self):
@@ -281,9 +281,11 @@ class ClientProtocol(asyncio.Protocol):
         "Dump a NOTICE to a connected client."
         self.dump_verb('NOTICE', params=[self.nickname, '*** ' + message])
 
-    def dump_verb(self, verb, params, source=None):
+    def dump_verb(self, verb, params, source=None, unprefixed=False):
         """Dump a verb to a connected client."""
-        if source is None:
+        # unprefixed is kind of a hack, but some clients fall over when
+        #   prefixes are presented with messages like PING
+        if source is None and not unprefixed:
             source = self.ctx.conf.name
         msg = RFC1459Message.from_data(verb, source=source, params=params)
         self.dump_message(msg)
