@@ -165,7 +165,14 @@ Options:
             self.nofork = True
 
     def handle_config(self):
-        self.conf = ConfigHandler(self.config_name, self)
+        try:
+            self.conf = ConfigHandler(self.config_name, self)
+        except FileNotFoundError:
+            import pkg_resources
+            default_config_path = pkg_resources.resource_filename('mammon', 'mammond.yml')
+            self.logger.info('cannot find config file, using default')
+            self.conf = ConfigHandler(default_config_path, self)
+
         self.conf.process()
         self.open_listeners()
         self.open_logs()
