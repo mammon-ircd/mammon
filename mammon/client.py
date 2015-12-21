@@ -341,6 +341,9 @@ class ClientProtocol(asyncio.Protocol):
 
         self.connected = False
         self.transport.close()
+        with self.ctx.prereg_nicks_lock:
+            if self.nickname in self.ctx.prereg_nicks:
+                self.ctx.prereg_nicks.remove(self.nickname)
         if not self.registered:
             return
         while self.channels:
