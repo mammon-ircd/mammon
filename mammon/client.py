@@ -451,6 +451,9 @@ class ClientProtocol(asyncio.Protocol):
         self.registered = True
         self.ctx.clients[self.nickname] = self
 
+        with self.ctx.prereg_nicks_lock:
+            self.ctx.prereg_nicks.remove(self.nickname)
+
         self.registration_ts = self.ctx.current_ts
         self.update_idle()
 

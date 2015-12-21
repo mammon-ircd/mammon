@@ -115,9 +115,11 @@ def m_NICK(cli, ev_msg):
     if not validate_nick(new_nickname):
         cli.dump_numeric('432', [new_nickname, 'Erroneous nickname'])
         return
-    if new_nickname in cli.ctx.clients:
-        cli.dump_numeric('433', [new_nickname, 'Nickname already in use'])
-        return
+    with cli.ctx.prereg_nicks_lock:
+        if new_nickname in cli.ctx.clients or new_nickname in cli.ctx.prereg_nicks:
+            cli.dump_numeric('433', [new_nickname, 'Nickname already in use'])
+            return
+        cli.ctx.prereg_nicks.append(new_nickname)
     msg = RFC1459Message.from_data('NICK', source=cli, params=[new_nickname])
     if cli.registered:
         if cli.nickname in cli.ctx.clients:

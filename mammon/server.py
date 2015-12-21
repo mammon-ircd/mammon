@@ -27,7 +27,7 @@ from . import core
 from .config import ConfigHandler
 from .data import DataStore
 from .hashing import HashHandler
-from .utility import CaseInsensitiveDict, ExpiringDict
+from .utility import CaseInsensitiveList, CaseInsensitiveDict, ExpiringDict
 from .channel import ChannelManager
 from .capability import caplist
 from .isupport import get_isupport
@@ -41,11 +41,14 @@ import time
 import os
 import signal
 import importlib
+import threading
 from getpass import getpass
 
 class ServerContext(object):
     options = []
     roles = []
+    prereg_nicks_lock = threading.Lock()
+    prereg_nicks = CaseInsensitiveList()
     clients = CaseInsensitiveDict()
     channels = CaseInsensitiveDict()
     listeners = []
