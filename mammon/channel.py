@@ -328,9 +328,7 @@ def m_join_channel(info):
     if cli.servername != ctx.conf.name:
         return
 
-    if ch.topic:
-        cli.handle_side_effect('TOPIC', params=[ch.name])
-
+    cli.handle_side_effect('TOPIC', params=[ch.name])
     cli.handle_side_effect('NAMES', params=[ch.name])
 
 @eventmgr_rfc1459.message('PART', min_params=1, update_idle=True)
