@@ -146,8 +146,8 @@ class Channel(object):
 
     def can_display(self, client):
         if self.props.get('secret', False):
-            return True
-        return self.has_member(client)
+            return self.has_member(client)
+        return True
 
     def dump_message(self, msg, exclusion_list=None, local_only=True,
                      cap=None, exclude_cap=None):
