@@ -72,6 +72,7 @@ class ClientProtocol(asyncio.Protocol):
         self.realname = '<unregistered>'
         self.props = CaseInsensitiveDict()
         self.caps = CaseInsensitiveDict()
+        self.cap_version = 301
         self.user_set_metadata = CaseInsensitiveList()
         self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name

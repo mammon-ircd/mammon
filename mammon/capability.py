@@ -46,7 +46,9 @@ class Capability(object):
 Capability('cap-notify')
 
 def m_CAP_LS(cli, ev_msg):
-    is_ircv3_2 = len(ev_msg['params']) > 1 and int(ev_msg['params'][1]) > 301
+    if len(ev_msg['params']) > 1:
+        cli.cap_version = int(ev_msg['params'][1])
+    is_ircv3_2 = len(ev_msg['params']) > 1 and cli.cap_version > 301
     if is_ircv3_2:
         cli.caps['cap-notify'] = caplist['cap-notify']
 
@@ -56,7 +58,10 @@ def m_CAP_LS(cli, ev_msg):
         l.append(cap.atom(is_ircv3_2))
         # only dump continuation line if we have more caps to go
         if len(l) > 8 and caps.index(cap) + 1 < len(caps):
-            cli.dump_numeric('CAP', ['LS', '*', ' '.join(l)])
+            args = ['LS']
+            if is_ircv3_2:
+                args.append('*')
+            cli.dump_numeric('CAP', args + [' '.join(l)])
             l = list()
 
     if l:
@@ -67,7 +72,10 @@ def m_CAP_LIST(cli, ev_msg):
     for cap in cli.caps.values():
         l.append(cap.name)
         if len(l) > 8:
-            cli.dump_numeric('CAP', ['LIST', '*', ' '.join(l)])
+            args = ['LIST']
+            if cli.cap_version > 301:
+                args.append('*')
+            cli.dump_numeric('CAP', args + [' '.join(l)])
             l = list()
 
     if l:
