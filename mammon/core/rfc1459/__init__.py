@@ -269,7 +269,6 @@ def m_MODE(cli, ev_msg):
             if not ch.has_member(cli):
                 cli.dump_numeric('442', [ch.name, "You're not on that channel"])
                 continue
-            print(ev_msg)
             # handle inquiry
             if len(ev_msg['params']) == 1:
                 cli.dump_numeric('324', [ch.name, ch.legacy_modes])
