@@ -70,8 +70,7 @@ def m_CAP_LIST(cli, ev_msg):
             cli.dump_numeric('CAP', ['LIST', '*', ' '.join(l)])
             l = list()
 
-    if l:
-        cli.dump_numeric('CAP', ['LIST', ' '.join(l)])
+    cli.dump_numeric('CAP', ['LIST', ' '.join(l)])
 
 def m_CAP_CLEAR(cli, ev_msg):
     to_remove = list(filter(lambda x: not x.sticky, cli.caps.values()))
