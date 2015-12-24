@@ -84,13 +84,17 @@ def m_sasl_plain(info):
     cli = info['source']
     data = info['data']
 
-    account, authorization_id, passphrase = data.split(b'\x00')
+    authorization_id, account, passphrase = data.split(b'\x00')
     account = str(account, 'utf8')
     passphrase = str(passphrase, 'utf8')
+    authorization_id = str(authorization_id, 'utf8')
+
+    # Derive authorization_id from account name
+    authorization_id = authorization_id or account
 
     account_info = cli.ctx.data.get('account.{}'.format(account), None)
     if (account_info and 'passphrase' in account_info['credentials'] and
-            account_info['verified']):
+            account_info['verified'] and authorization_id == account):
         passphrase_hash = account_info['credentials']['passphrase']
         if cli.ctx.hashing.verify(passphrase, passphrase_hash):
             cli.account = account
