@@ -363,7 +363,7 @@ def m_PART(cli, ev_msg):
         eventmgr_core.dispatch('channel part', info)
 
 @eventmgr_core.handler('channel part', priority=1)
-def m_join_channel(info):
+def m_part_channel(info):
     ch = info['channel']
     cli = info['client']
     message = info['message']
