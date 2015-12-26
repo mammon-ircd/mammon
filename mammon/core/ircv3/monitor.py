@@ -84,10 +84,11 @@ def m_monitor_edit(info):
             except ValueError:
                 pass
 
-    if online:
-        cli.dump_numeric('730', [','.join(online)])
-    if offline:
-        cli.dump_numeric('731', [','.join(offline)])
+    if info['command'] == '+':
+        if online:
+            cli.dump_numeric('730', [','.join(online)])
+        if offline:
+            cli.dump_numeric('731', [','.join(offline)])
 
 @eventmgr_core.handler('monitor c', priority=1)
 def m_monitor_clear(info):
