@@ -121,10 +121,10 @@ def m_NICK(cli, ev_msg):
     if cli.nickname in cli.ctx.clients:
         cli.ctx.clients.pop(cli.nickname)
         cli.ctx.clients[new_nickname] = cli
-    cli.nickname = new_nickname
     if cli.registered:
         msg = RFC1459Message.from_data('NICK', source=cli, params=[new_nickname])
         cli.sendto_common_peers(msg)
+    cli.nickname = new_nickname
     cli.release_registration_lock('NICK')
 
 @eventmgr_rfc1459.message('USER', min_params=4, allow_unregistered=True)
