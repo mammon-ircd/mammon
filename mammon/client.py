@@ -99,6 +99,7 @@ class ClientProtocol(asyncio.Protocol):
         self.ping_future = None
         self.ping_timeout_future = None
         self.update_pings()
+        self.update_idle()
 
         asyncio.async(self.do_rdns_check())
         eventmgr_core.dispatch('client reglocked', {
