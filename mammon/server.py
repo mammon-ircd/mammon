@@ -47,8 +47,6 @@ from getpass import getpass
 class ServerContext(object):
     options = []
     roles = []
-    prereg_nicks_lock = threading.Lock()
-    prereg_nicks = CaseInsensitiveList()
     clients = CaseInsensitiveDict()
     channels = CaseInsensitiveDict()
     listeners = []

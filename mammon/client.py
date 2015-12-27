@@ -343,9 +343,6 @@ class ClientProtocol(asyncio.Protocol):
 
         self.connected = False
         self.transport.close()
-        with self.ctx.prereg_nicks_lock:
-            if self.nickname in self.ctx.prereg_nicks:
-                self.ctx.prereg_nicks.remove(self.nickname)
         if not self.registered:
             return
         while self.channels:
@@ -455,9 +452,6 @@ class ClientProtocol(asyncio.Protocol):
     def register(self):
         self.registered = True
         self.ctx.clients[self.nickname] = self
-
-        with self.ctx.prereg_nicks_lock:
-            self.ctx.prereg_nicks.remove(self.nickname)
 
         self.registration_ts = self.ctx.current_ts
         self.update_idle()
