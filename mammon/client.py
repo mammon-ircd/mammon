@@ -24,7 +24,7 @@ import functools
 from ircreactor.envelope import RFC1459Message
 from .capability import Capability
 from .channel import Channel
-from .utility import CaseInsensitiveDict, CaseInsensitiveList, uniq, validate_hostname
+from .utility import CaseInsensitiveDict, CaseInsensitiveList, CaseInsensitiveSet, uniq, validate_hostname
 from .property import user_property_items, user_mode_items
 from .server import eventmgr_rfc1459, eventmgr_core, get_context
 from .isupport import get_isupport
@@ -76,7 +76,7 @@ class ClientProtocol(asyncio.Protocol):
         self.user_set_metadata = CaseInsensitiveList()
         self.metadata = CaseInsensitiveDict()
         self.servername = self.ctx.conf.name
-        self.monitoring = CaseInsensitiveList()
+        self.monitoring = CaseInsensitiveSet()
 
         self.away_message = str()
         self._role_name = None

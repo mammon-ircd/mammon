@@ -61,13 +61,11 @@ def m_monitor_edit(info):
 
     for target in info['targets']:
         if target not in monitored:
-            monitored[target] = []
+            monitored[target] = set()
 
         if info['command'] == '+':
-            if cli not in monitored[target]:
-                monitored[target].append(cli)
-            if target not in cli.monitoring:
-                cli.monitoring.append(target)
+            monitored[target].add(cli)
+            cli.monitoring.add(target)
 
             if target in ctx.clients:
                 online.append(target)
@@ -75,14 +73,8 @@ def m_monitor_edit(info):
                 offline.append(target)
 
         elif info['command'] == '-':
-            try:
-                monitored[target].remove(cli)
-            except ValueError:
-                pass
-            try:
-                cli.monitoring.remove(target)
-            except ValueError:
-                pass
+            monitored[target].discard(cli)
+            cli.monitoring.discard(target)
 
     if info['command'] == '+':
         if online:
