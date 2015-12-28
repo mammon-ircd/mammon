@@ -245,6 +245,43 @@ class CaseInsensitiveList(collections.MutableSequence):
         self.extend(other)
         return self
 
+class CaseInsensitiveSet(collections.MutableSet):
+    @staticmethod
+    def _check_value(value):
+        if not isinstance(value, object):
+           raise TypeError()
+
+    def __init__(self, data=None):
+        self.__store = set()
+
+        if data:
+            self.update(data)
+
+    def __len__(self):
+        return len(self.__store)
+
+    def add(self, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self._check_value(value)
+        self.__store.add(value)
+
+    def discard(self, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        self.__store.discard(value)
+
+    def __contains__(self, value):
+        if isinstance(value, str):
+            value = value.casefold()
+
+        return value in self.__store
+
+    def __iter__(self):
+        return iter(self.__store)
+
 import string
 hostname_allowed_chars = string.ascii_letters + string.digits + '-'
 hostname_allowed_chars_tbl = str.maketrans('', '', hostname_allowed_chars)
