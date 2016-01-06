@@ -151,6 +151,10 @@ def metadata_SET(cli, ev_msg, target_name, target):
                     cli.dump_numeric('764', [target_name, 'metadata limit reached'], add_target=False)
                     return
 
+    if not value and key not in target.metadata:
+        cli.dump_numeric('768', [target_name, key, 'key not set'], add_target=False)
+        return
+
     # throw change
     info = {
         'key': key,
