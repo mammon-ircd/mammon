@@ -102,6 +102,8 @@ def m_CAP_END(cli, ev_msg):
 def m_CAP_REQ(cli, ev_msg):
     cap_add = []
     cap_del = []
+    cap_show_add = []
+    cap_show_del = []
     args = ev_msg['params'][1]
 
     def dump_NAK(cli):
@@ -112,38 +114,30 @@ def m_CAP_REQ(cli, ev_msg):
 
         if negate:
             arg = arg[1:]
-
-        if arg not in caplist:
-            dump_NAK(cli)
-            return
-
-        if negate:
+            cap_show_del.append(arg)
+            if arg in cli.caps:
+                cap_del.append(arg)
+        else:
+            cap_show_add.append(arg)
             if arg not in cli.caps:
-                dump_NAK(cli)
-                return
-            cap_del.append(arg)
-            continue
+                cap_add.append(arg)
 
-        if arg in cli.caps:
-            dump_NAK(cli)
-            return
-
-        cap_add.append(arg)
-
-    cli.dump_numeric('CAP', ['ACK', ' '.join(cap_add) + ' -'.join(cap_del) + ' '])
+    cli.dump_numeric('CAP', ['ACK', ' '.join(cap_show_add) + ' -'.join(cap_show_del) + ' '])
 
     # we accepted the changeset, so apply it
-    info = {
-        'client': cli,
-        'caps': cap_add,
-    }
-    eventmgr_core.dispatch('cap add', info)
+    if cap_add:
+        info = {
+            'client': cli,
+            'caps': cap_add,
+        }
+        eventmgr_core.dispatch('cap add', info)
 
-    info = {
-        'client': cli,
-        'caps': cap_del,
-    }
-    eventmgr_core.dispatch('cap del', info)
+    if cap_del:
+        info = {
+            'client': cli,
+            'caps': cap_del,
+        }
+        eventmgr_core.dispatch('cap del', info)
 
 @eventmgr_core.handler('cap add', priority=1)
 def m_cap_add(info):
