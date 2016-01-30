@@ -40,22 +40,44 @@ def m_AUTHENTICATE(cli, ev_msg):
     if len(ev_msg['params']) == 1 and ev_msg['params'][0] == '*':
         if getattr(cli, 'sasl', None):
             cli.dump_numeric('906', ['SASL authentication aborted'])
-            cli.sasl = None
         else:
             cli.dump_numeric('904', ['SASL authentication failed'])
+        cli.sasl = None
+        cli.sasl_tmp = ''
         return
 
     if getattr(cli, 'sasl', None):
-        if len(ev_msg['params'][0]) > 400:
+        raw_data = ev_msg['params'][0]
+
+        if len(raw_data) > 400:
             cli.dump_numeric('905', ['SASL message too long'])
             cli.sasl = None
+            cli.sasl_tmp = ''
             return
+        elif len(raw_data) == 400:
+            if not hasattr(cli, 'sasl_tmp'):
+                cli.sasl_tmp = ''
+            cli.sasl_tmp += raw_data
+            # allow 4 'continuation' lines before rejecting for length
+            if len(cli.sasl_tmp) > 400 * 4:
+                cli.dump_numeric('904', ['SASL authentication failed: Password too long'])
+                cli.sasl = None
+                cli.sasl_tmp = ''
+            return
+        elif getattr(cli, 'sasl_tmp', None):
+            if raw_data != '+':
+                cli.sasl_tmp += raw_data
 
         try:
-            data = base64.b64decode(ev_msg['params'][0])
+            if hasattr(cli, 'sasl_tmp'):
+                data = base64.b64decode(cli.sasl_tmp)
+            else:
+                data = base64.b64decode(raw_data)
         except binascii.Error:
             cli.dump_numeric('904', ['SASL authentication failed'])
             return
+
+        cli.sasl_tmp = ''
 
         eventmgr_core.dispatch('sasl authenticate {}'.format(cli.sasl.casefold()), {
             'source': cli,
@@ -84,7 +106,12 @@ def m_sasl_plain(info):
     cli = info['source']
     data = info['data']
 
-    authorization_id, account, passphrase = data.split(b'\x00')
+    try:
+        authorization_id, account, passphrase = data.split(b'\x00')
+    except ValueError:
+        cli.dump_numeric('904', ['SASL authentication failed'])
+        cli.sasl = None
+        return
     account = str(account, 'utf8')
     passphrase = str(passphrase, 'utf8')
     authorization_id = str(authorization_id, 'utf8')
